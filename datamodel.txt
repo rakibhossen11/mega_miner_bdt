@@ -1,0 +1,65 @@
+┌───────────┐       ┌───────────┐
+│   users   │ ───►  │  wallets  │
+└─────┬─────┘       └───────────┘
+      │
+      ├─────────────┬────────────────────────┐
+      ▼             ▼                        ▼
+┌───────────┐ ┌───────────┐            ┌──────────────┐
+│  mining_  │ │ transac-  │            │  disposable_ │
+│  sessions │ │  tions    │            │    domains   │
+└───────────┘ └───────────┘            └──────────────┘
+
+//users (ইউজার প্রোফাইল এবং ফ্রড প্রটেকশন)
+CREATE TABLE users (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    username VARCHAR(50) UNIQUE NOT NULL,
+    email VARCHAR(100) UNIQUE NOT NULL,
+    password_hash VARCHAR(255) NOT NULL,
+    device_fingerprint VARCHAR(255) NOT NULL, -- একই ডিভাইসে একাধিক অ্যাকাউন্ট ব্লক করতে
+    referred_by INT NULL,                     -- যে রেফার করেছে তার User ID
+    status ENUM('pending', 'active', 'suspended') DEFAULT 'pending',
+    role ENUM('user', 'admin') DEFAULT 'user',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (referred_by) REFERENCES users(id) ON DELETE SET NULL
+);
+
+wallets (টাকা/পয়েন্টের মূল লেজার - সম্পূর্ণ আলাদা টেবিল)
+CREATE TABLE wallets (
+    user_id INT PRIMARY KEY,
+    balance DECIMAL(18, 8) DEFAULT 0.00000000,       -- কারেন্ট উইথড্রযোগ্য ব্যালেন্স
+    total_mined DECIMAL(18, 8) DEFAULT 0.00000000,   -- আজ পর্যন্ত মোট মাইনিং আয়
+    hash_power INT DEFAULT 100,                       -- ডিফল্ট স্পিড 100 Gh/s (ভিআইপি কিনলে বাড়বে)
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+mining_sessions (সার্ভার সাইড টাইম ট্র্যাকার)
+CREATE TABLE mining_sessions (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NOT NULL,
+    started_at TIMESTAMP NOT NULL,
+    ends_at TIMESTAMP NOT NULL,                       -- started_at এর সাথে ঠিক ২৪ ঘণ্টা যোগ হবে
+    is_claimed BOOLEAN DEFAULT FALSE,                 -- রিওয়ার্ড ওয়ালেটে নিয়েছে কিনা
+    reward_amount DECIMAL(18, 8) DEFAULT 0.00000000,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+transactions (আয়-ব্যয়ের অডিট লগ)
+CREATE TABLE transactions (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NOT NULL,
+    type ENUM('mining', 'task', 'referral', 'withdraw', 'purchase') NOT NULL,
+    amount DECIMAL(18, 8) NOT NULL,
+    status ENUM('pending', 'completed', 'failed') DEFAULT 'completed',
+    payment_method VARCHAR(50) NULL,                  -- bKash, Nagad, Crypto
+    account_number VARCHAR(100) NULL,                -- ইউজারের বিকাশ বা ওয়ালেট নম্বর
+    reference_id VARCHAR(255) UNIQUE NULL,            -- অফারওয়ালের ট্রানজেকশন আইডি
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+disposable_domains (ফেক ইমেইল ডোমেন লিস্ট - স্ট্যাটিক টেবিল)
+CREATE TABLE disposable_domains (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    domain_name VARCHAR(100) UNIQUE NOT NULL          -- যেমন: tempmail.com, 10minutemail.com
+);
