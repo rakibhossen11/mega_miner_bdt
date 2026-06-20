@@ -56,15 +56,15 @@ export default function ReferralPage() {
   // High-Fidelity Skeleton Pulse Effect for seamless UX
   if (loading) {
     return (
-      <div className="min-h-screen bg-slate-950 text-white p-6 animate-pulse">
-        <div className="h-7 bg-slate-900 w-1/5 rounded-lg mb-3"></div>
-        <div className="h-4 bg-slate-900 w-2/5 rounded-lg mb-8"></div>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-          <div className="h-28 bg-slate-900 rounded-2xl"></div>
-          <div className="h-28 bg-slate-900 rounded-2xl"></div>
-          <div className="h-28 bg-slate-900 rounded-2xl"></div>
+      <div className="min-h-screen bg-[#060d08] text-white p-6 animate-pulse space-y-8">
+        <div className="h-7 bg-[#121b15] w-1/3 rounded-xl"></div>
+        <div className="h-40 bg-[#121b15] rounded-3xl"></div>
+        <div className="grid grid-cols-2 gap-4">
+          <div className="h-28 bg-[#121b15] rounded-2xl"></div>
+          <div className="h-28 bg-[#121b15] rounded-2xl"></div>
         </div>
-        <div className="h-32 bg-slate-900 rounded-2xl max-w-3xl"></div>
+        <div className="h-28 bg-[#121b15] rounded-2xl max-w-xl mx-auto"></div>
+        <div className="h-56 bg-[#121b15] rounded-3xl"></div>
       </div>
     );
   }
@@ -72,16 +72,16 @@ export default function ReferralPage() {
   // Graceful Error Boundary Handler
   if (error) {
     return (
-      <div className="min-h-screen bg-slate-950 text-white p-6 flex flex-col items-center justify-center">
-        <div className="bg-red-500/10 border border-red-500/20 p-6 rounded-2xl text-center max-w-md shadow-2xl">
-          <span className="text-4xl">⚠️</span>
-          <h3 className="text-lg font-bold text-red-400 mt-3">Pipeline Connection Failed</h3>
-          <p className="text-slate-400 text-sm mt-1">{error}</p>
+      <div className="min-h-screen bg-[#060d08] text-white p-6 flex flex-col items-center justify-center">
+        <div className="bg-red-500/10 border border-red-500/20 p-8 rounded-3xl text-center max-w-sm shadow-2xl shadow-red-500/10 backdrop-blur-sm">
+          <span className="text-5xl">⚠️</span>
+          <h3 className="text-lg font-black text-red-400 mt-4 tracking-wide uppercase">Network Breach Detected</h3>
+          <p className="text-zinc-500 text-xs mt-1.5 leading-relaxed">{error}</p>
           <button 
             onClick={() => window.location.reload()} 
-            className="mt-5 bg-gradient-to-r from-red-600 to-rose-600 text-xs text-white font-bold px-5 py-2.5 rounded-xl transition-all active:scale-95"
+            className="mt-6 w-full py-3 bg-gradient-to-r from-red-600 to-rose-600 text-xs text-white font-black px-5 rounded-xl transition-all active:scale-95 shadow-lg shadow-red-500/20"
           >
-            Retry Database Handshake
+            Retry Quantum Handshake
           </button>
         </div>
       </div>
@@ -89,306 +89,159 @@ export default function ReferralPage() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-950 text-white p-6 pb-24 md:pb-6">
-      {/* Header */}
-      <div className="mb-8 border-b border-slate-800 pb-4">
-        <h1 className="text-2xl font-black bg-gradient-to-r from-blue-400 to-indigo-500 bg-clip-text text-transparent">
-          Referral & Affiliate Hub
-        </h1>
-        <p className="text-slate-400 text-sm">
-          Invite your friends to expand the network cluster and earn passive cryptographic coin yields instantly.
-        </p>
-      </div>
-
-      {/* Numerical Data Overview Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-        {/* Total Referrals Box */}
-        <div className="bg-slate-900 border border-slate-800 p-6 rounded-2xl shadow-lg relative overflow-hidden">
-          <p className="text-slate-500 text-xs font-bold uppercase tracking-wider mb-1">Total Referrals</p>
-          <h2 className="text-3xl font-black text-blue-400">{data.totalReferrals} <span className="text-xs font-normal text-slate-500">Users</span></h2>
-          <div className="absolute right-4 bottom-3 text-4xl opacity-[0.02]">👥</div>
+    <div className="min-h-screen bg-[#060d08] text-white p-4 pb-24 md:pb-6 font-sans antialiased selection:bg-lime-500/30">
+      
+      {/* 🚀 Top Header Component */}
+      <div className="max-w-xl mx-auto mb-6 flex justify-between items-center bg-[#0d160f]/60 border border-lime-950/40 p-4 rounded-2xl backdrop-blur-md shadow-xl">
+        <div>
+          <h1 className="text-xl font-black bg-gradient-to-r from-lime-400 to-cyan-400 bg-clip-text text-transparent uppercase tracking-wider">
+            Affiliate Node Hub
+          </h1>
+          <p className="text-zinc-500 text-[11px] font-medium">Expand your network cluster to inject coin yields.</p>
         </div>
-        
-        {/* Total Coins Earned From Referral Box */}
-        <div className="bg-slate-900 border border-slate-800 p-6 rounded-2xl shadow-lg relative overflow-hidden">
-          <p className="text-slate-500 text-xs font-bold uppercase tracking-wider mb-1">Referral Coins Earned</p>
-          <h2 className="text-3xl font-black text-amber-400">{data.referralEarnings} <span className="text-xs font-normal text-slate-500">Coins</span></h2>
-          <span className="text-[10px] text-slate-500 block mt-1">* +500 Coins rewarded per successful verification node</span>
-          <div className="absolute right-4 bottom-3 text-4xl opacity-[0.02]">🪙</div>
-        </div>
-
-        {/* Live Wallet Cryptowallet Core Assets */}
-        <div className="bg-slate-900 border border-slate-800 p-6 rounded-2xl shadow-lg relative overflow-hidden">
-          <p className="text-slate-500 text-xs font-bold uppercase tracking-wider mb-1">Main Wallet Assets</p>
-          <h2 className="text-2xl font-black text-slate-100">{data.totalCoin} <span className="text-xs font-normal text-slate-400">Coins</span></h2>
-          <h4 className="text-sm font-bold text-emerald-400 mt-0.5">${Number(data.totalDollar).toFixed(2)} USD</h4>
-          <div className="absolute right-4 bottom-3 text-4xl opacity-[0.02]">💼</div>
+        <div className="text-right bg-[#09110b] border border-lime-950 px-3 py-1 rounded-xl">
+          <p className="text-[9px] text-zinc-600 font-bold uppercase tracking-widest leading-none">Main Balance</p>
+          <p className="text-xs font-mono font-black text-lime-400 flex items-center gap-1 justify-end mt-1.5 leading-none">
+            🪙 {data.totalCoin.toFixed(0)} <span className="text-zinc-500 font-normal">D</span>
+          </p>
         </div>
       </div>
 
-      {/* Unique Link Box Area */}
-      <div className="bg-slate-900 border border-slate-800 p-6 md:p-8 rounded-2xl shadow-xl max-w-3xl mb-12">
-        <h3 className="text-lg font-bold text-slate-200 mb-1">Unique Invitation Hub</h3>
-        <p className="text-sm text-slate-400 mb-5">Distribute your customized access network parameters below. Newly attached nodes receive 100 bonus tokens automatically.</p>
+      {/* Main Layout Command Center */}
+      <div className="max-w-xl mx-auto space-y-6">
         
-        <div className="flex flex-col sm:flex-row gap-3">
-          <input
-            type="text"
-            readOnly
-            value={data.referralLink || "Compiling routing assets..."}
-            className="flex-1 bg-slate-950 border border-slate-800 rounded-xl p-3.5 text-sm text-slate-400 font-mono focus:outline-none select-all"
-          />
-          <button
-            onClick={handleCopy}
-            disabled={!data.referralLink}
-            className={`sm:w-36 p-3.5 rounded-xl font-bold text-sm tracking-wide transition-all active:scale-95 ${
-              copied 
-                ? "bg-emerald-500 text-slate-950 font-black" 
-                : "bg-gradient-to-r from-blue-500 to-indigo-600 text-white hover:opacity-95 disabled:opacity-50"
-            }`}
-          >
-            {copied ? "Copied! ✓" : "Copy Link"}
-          </button>
-        </div>
-      </div>
-
-      {/* Relational Table History Ledger */}
-      <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl">
-        <h3 className="text-lg font-bold text-slate-200 mb-4">Referred Friends Ledger</h3>
-        
-        <div className="overflow-x-auto">
-          {data.referredFriends.length === 0 ? (
-            <div className="text-center py-10 text-slate-500 text-sm tracking-wide">
-              No sub-nodes linked yet. Spread your encryption link to populate database rows.
+        {/* CENTER MODULE: GIANT NEON NETWORK HUB VISUAL */}
+        <div className="bg-gradient-to-b from-[#0b140d] to-[#060a07] border border-lime-950/40 p-6 rounded-[32px] relative overflow-hidden shadow-2xl flex flex-col justify-between min-h-[360px]">
+          
+          <div className="flex justify-between items-center z-10">
+            <div className="flex items-center gap-2 bg-[#060a07] border border-lime-950/80 px-3 py-1.5 rounded-xl">
+              <span className="text-xs text-lime-500 animate-pulse">🧬</span>
+              <span className="text-[10px] font-black tracking-widest text-zinc-400 uppercase">Affiliate Core</span>
             </div>
-          ) : (
-            <table className="w-full text-left text-sm text-slate-400">
-              <thead className="text-xs uppercase bg-slate-950 text-slate-300 border-b border-slate-800">
-                <tr>
-                  <th className="p-4 tracking-wider">Friend ID</th>
-                  <th className="p-4 tracking-wider">Username</th>
-                  <th className="p-4 tracking-wider">Your Payout</th>
-                  <th className="p-4 tracking-wider">Friend Payout</th>
-                  <th className="p-4 tracking-wider">Timestamp Log</th>
-                </tr>
-              </thead>
-              <tbody>
-                {data.referredFriends.map((friend) => (
-                  <tr key={friend.referred_id} className="border-b border-slate-800/50 hover:bg-slate-800/20 transition-all duration-150">
-                    <td className="p-4 font-mono text-xs text-blue-400 font-bold">#{friend.referred_id}</td>
-                    <td className="p-4 font-medium text-slate-200">{friend.referred_username}</td>
-                    <td className="p-4 text-amber-400 font-bold">+{friend.referrer_bonus_coins} Coins</td>
-                    <td className="p-4 text-slate-400">+{friend.referred_bonus_coins} Coins</td>
-                    <td className="p-4 text-xs font-mono text-slate-500">
-                      {new Date(friend.created_at).toLocaleDateString("en-US", {
-                        year: "numeric",
-                        month: "short",
-                        day: "numeric"
-                      })}
-                    </td>
+            <div className="bg-[#060a07] border border-lime-950/80 px-3 py-1.5 rounded-xl text-right">
+              <p className="text-[9px] text-zinc-500 font-bold uppercase tracking-wider">Net Status</p>
+              <p className="text-xs font-mono font-black text-lime-400 flex items-center gap-1.5 justify-end">
+                <span className="h-1.5 w-1.5 rounded-full bg-lime-400 animate-pulse inline-block"></span> Secure
+              </p>
+            </div>
+          </div>
+
+          {/* THE GIANT INTERACTIVE NEON HUB */}
+          <div className="relative flex justify-center items-center my-auto py-2">
+            <div className="absolute h-60 w-60 bg-lime-500/10 rounded-full blur-3xl animate-pulse"></div>
+
+            <div className="relative h-44 w-44 rounded-full bg-[#060a07] border-[6px] border-lime-500 shadow-[0_0_40px_rgba(132,204,22,0.25)] flex items-center justify-center p-3 group transition-transform hover:scale-[1.02]">
+              <div className="h-full w-full rounded-full bg-gradient-to-tr from-lime-500/10 to-lime-500/20 border border-lime-500 flex flex-col items-center justify-center gap-1">
+                <span className="text-5xl font-black text-lime-400 tracking-tighter filter drop-shadow-[0_0_10px_rgba(132,204,22,0.6)]">
+                  {data.totalReferrals}
+                </span>
+                <span className="text-[9px] font-black tracking-widest text-zinc-300 uppercase leading-none mt-0.5 group-hover:text-lime-400 transition-colors">
+                  Linked Nodes
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <div className="text-center z-10 mb-4 bg-zinc-950/60 p-3 rounded-xl border border-lime-950/80">
+            <h2 className="text-3xl font-black text-white font-mono tracking-tight flex items-center justify-center gap-2">
+              <span className="text-amber-400 font-sans">🪙</span> {data.referralEarnings.toFixed(2)}
+            </h2>
+            <p className="text-[10px] text-zinc-500 font-bold uppercase tracking-wider mt-1.5 leading-relaxed">
+              Consolidated Net Ledger • <span className="text-lime-400">+500 D Tokens</span> / node sync
+            </p>
+          </div>
+        </div>
+
+        {/* REFINERY BOOST LINK BOX AREA */}
+        <div className="bg-gradient-to-b from-[#0b140d] to-[#060a07] border border-lime-950/40 p-6 rounded-3xl shadow-xl flex flex-col justify-between">
+          <div>
+            <h3 className="text-xs font-black tracking-widest uppercase text-zinc-300 mb-1">Invitation Subsystem Gateway</h3>
+            <p className="text-[11px] text-zinc-500 mb-5 leading-relaxed">Inject unique profile parameters into network routing. Attaching nodes auto-manifest 100 bonus tokens.</p>
+          </div>
+
+          <div className="bg-[#060a07] border border-lime-950 h-2 rounded-full overflow-hidden p-0.5 mb-5 relative group">
+            <div className="bg-gradient-to-r from-lime-600 to-lime-400 h-full rounded-full shadow-[0_0_8px_rgba(132,204,22,0.4)] relative w-full"></div>
+          </div>
+
+          <div className="flex flex-col sm:flex-row gap-3">
+            <input
+              type="text"
+              readOnly
+              value={data.referralLink || "Compiling unique routing parameters..."}
+              className="flex-1 bg-[#09110b] border border-lime-950/80 rounded-xl p-4 text-[11px] text-lime-400 font-mono tracking-tighter focus:outline-none select-all shadow-inner"
+            />
+            <button
+              onClick={handleCopy}
+              disabled={!data.referralLink}
+              className={`sm:w-36 p-4 rounded-xl text-xs font-black tracking-widest uppercase transition-all duration-300 active:scale-95 shadow-lg border ${
+                copied 
+                  ? "bg-lime-500 text-[#070d08] border-lime-400 shadow-lime-500/20" 
+                  : "bg-gradient-to-r from-cyan-600 to-lime-500 text-black border-lime-400 shadow-lime-500/10 hover:shadow-lime-500/20"
+              }`}
+            >
+              {copied ? "Link Copied ✓" : "Copy Node Link"}
+            </button>
+          </div>
+        </div>
+
+        {/* STORAGE PIPELINE: REFERRED FRIENDS LEDGER */}
+        <div className="bg-gradient-to-b from-[#0b140d] to-[#060a07] border border-lime-950/40 p-6 rounded-3xl shadow-xl flex flex-col justify-between">
+          <div className="mb-5 flex justify-between items-center">
+            <div>
+              <div className="flex items-center gap-2 mb-1">
+                <span className="text-lg">🏭</span>
+                <h3 className="text-xs font-black tracking-widest text-zinc-300 uppercase">Surface Refinery Nodes</h3>
+              </div>
+              <p className="text-[11px] text-zinc-500 leading-relaxed">Secured browser data matrix rows.</p>
+            </div>
+            <div className="text-right bg-[#09110b] border border-lime-950 px-3 py-1.5 rounded-xl font-mono">
+              <p className="text-[9px] text-zinc-600 font-bold uppercase tracking-widest leading-none">Net Value</p>
+              <p className="text-sm font-black text-lime-400 leading-none mt-1.5 flex items-center gap-1 justify-end">
+                <span className="text-[10px] font-normal text-zinc-500">USD</span> ${data.totalDollar.toFixed(2)} 
+              </p>
+            </div>
+          </div>
+          
+          <div className="overflow-x-auto custom-scrollbar pt-1">
+            {data.referredFriends.length === 0 ? (
+              <div className="text-center py-10 bg-zinc-950/60 rounded-xl border border-lime-950/60">
+                <span className="text-2xl block mb-2 opacity-30">👤</span>
+                <p className="text-[10px] text-zinc-600 font-bold uppercase tracking-wider">No sub-nodes linked yet.</p>
+                <p className="text-[9px] text-zinc-700 mt-1">Spread your link to populate data rows.</p>
+              </div>
+            ) : (
+              <table className="w-full text-left text-[11px] text-zinc-300 border-collapse">
+                <thead className="bg-[#09110b] border-b border-lime-950/60">
+                  <tr>
+                    <th className="px-4 py-3 font-bold uppercase tracking-widest text-zinc-400">Node ID</th>
+                    <th className="px-4 py-3 font-bold uppercase tracking-widest text-zinc-400">Username</th>
+                    <th className="px-4 py-3 font-bold uppercase tracking-widest text-zinc-400">Your Cargo</th>
+                    <th className="px-4 py-3 font-bold uppercase tracking-widest text-zinc-400">Node cargo</th>
+                    <th className="px-4 py-3 font-bold uppercase tracking-widest text-zinc-400">Timestamp</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          )}
+                </thead>
+                <tbody>
+                  {data.referredFriends.map((friend) => (
+                    <tr key={friend.referred_id} className="border-b border-lime-950/30 hover:bg-[#121b15]/40 transition-colors duration-150">
+                      <td className="px-4 py-3 font-mono text-xs text-lime-400 font-bold">#{friend.referred_id}</td>
+                      <td className="px-4 py-3 font-medium text-slate-100">{friend.referred_username}</td>
+                      <td className="px-4 py-3 text-amber-400 font-bold">+{friend.referrer_bonus_coins} D</td>
+                      <td className="px-4 py-3 text-zinc-400">+{friend.referred_bonus_coins} D</td>
+                      <td className="px-4 py-3 font-mono text-zinc-500">
+                        {new Date(friend.created_at).toLocaleDateString("en-US", {
+                          month: "short",
+                          day: "numeric",
+                          year: "numeric"
+                        })}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+          </div>
         </div>
       </div>
     </div>
   );
 }
-
-// "use client";
-// import { useState, useEffect } from "react";
-// import { useRouter } from "next/navigation";
-
-// export default function ReferralPage() {
-//   const router = useRouter();
-
-//   const [data, setData] = useState({
-//     takaBalance: 0.00,
-//     referralEarnings: 0.00,
-//     totalReferrals: 0,
-//     referralLink: "",
-//     referredFriends: []
-//   });
-  
-//   const [loading, setLoading] = useState(true);
-//   const [error, setError] = useState(null);
-//   const [copied, setCopied] = useState(false);
-
-//   // Sync state data engine with live secure API endpoint
-//   useEffect(() => {
-//     async function getLiveStats() {
-//       try {
-//         setLoading(true);
-//         const res = await fetch("/api/dashboard/referral");
-//         const json = await res.json();
-
-//         if (json.success) {
-//           setData(json.data);
-//           setError(null);
-//         } else {
-//           // If unauthenticated, redirect directly to secure sign-in gateway
-//           if (res.status === 401) {
-//             router.push("/auth/login");
-//             return;
-//           }
-//           setError(json.error || "Failed to load dynamic pipeline rows.");
-//         }
-//       } catch (err) {
-//         setError("Network sync error. Check database infrastructure status.");
-//       } finally {
-//         setLoading(false);
-//       }
-//     }
-
-//     getLiveStats();
-//   }, [router]);
-
-//   const handleCopy = () => {
-//     if (!data.referralLink) return;
-//     navigator.clipboard.writeText(data.referralLink);
-//     setCopied(true);
-//     setTimeout(() => setCopied(false), 2000);
-//   };
-
-//   // High-Fidelity Skeleton Pulse Effect for seamless UX
-//   if (loading) {
-//     return (
-//       <div className="min-h-screen bg-slate-950 text-white p-6 animate-pulse">
-//         <div className="h-7 bg-slate-900 w-1/5 rounded-lg mb-3"></div>
-//         <div className="h-4 bg-slate-900 w-2/5 rounded-lg mb-8"></div>
-//         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-//           <div className="h-28 bg-slate-900 rounded-2xl"></div>
-//           <div className="h-28 bg-slate-900 rounded-2xl"></div>
-//           <div className="h-28 bg-slate-900 rounded-2xl"></div>
-//         </div>
-//         <div className="h-32 bg-slate-900 rounded-2xl max-w-3xl"></div>
-//       </div>
-//     );
-//   }
-
-//   // Graceful Error Boundary Handler
-//   if (error) {
-//     return (
-//       <div className="min-h-screen bg-slate-950 text-white p-6 flex flex-col items-center justify-center">
-//         <div className="bg-red-500/10 border border-red-500/20 p-6 rounded-2xl text-center max-w-md shadow-2xl">
-//           <span className="text-4xl">⚠️</span>
-//           <h3 className="text-lg font-bold text-red-400 mt-3">Pipeline Connection Failed</h3>
-//           <p className="text-slate-400 text-sm mt-1">{error}</p>
-//           <button 
-//             onClick={() => window.location.reload()} 
-//             className="mt-5 bg-gradient-to-r from-red-600 to-rose-600 text-xs text-white font-bold px-5 py-2.5 rounded-xl transition-all active:scale-95"
-//           >
-//             Retry Database Handshake
-//           </button>
-//         </div>
-//       </div>
-//     );
-//   }
-
-//   return (
-//     <div className="min-h-screen bg-slate-950 text-white p-6 pb-24 md:pb-6">
-//       {/* Header */}
-//       <div className="mb-8 border-b border-slate-800 pb-4">
-//         <h1 className="text-2xl font-black bg-gradient-to-r from-blue-400 to-indigo-500 bg-clip-text text-transparent">
-//           Affiliate Engine
-//         </h1>
-//         <p className="text-slate-400 text-sm">Expand the network grid. Distribute your token link to accumulate passive multipliers.</p>
-//       </div>
-
-//       {/* Numerical Data Overview Grid */}
-//       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-//         <div className="bg-slate-900 border border-slate-800 p-6 rounded-2xl shadow-lg relative overflow-hidden">
-//           <p className="text-slate-500 text-xs font-bold uppercase tracking-wider mb-1">Referred Sub-Nodes</p>
-//           <h2 className="text-3xl font-black text-blue-400">{data.totalReferrals} <span className="text-xs font-normal text-slate-500">Users</span></h2>
-//           <div className="absolute right-4 bottom-3 text-4xl opacity-[0.02]">👥</div>
-//         </div>
-        
-//         <div className="bg-slate-900 border border-slate-800 p-6 rounded-2xl shadow-lg relative overflow-hidden">
-//           <p className="text-slate-500 text-xs font-bold uppercase tracking-wider mb-1">Affiliate Yield Ledger</p>
-//           <h2 className="text-3xl font-black text-emerald-400">৳{data.referralEarnings.toFixed(2)}</h2>
-//           <span className="text-[10px] text-slate-500 block mt-1">* Calculated seamlessly at ৳5.00 BDT per node</span>
-//           <div className="absolute right-4 bottom-3 text-4xl opacity-[0.02]">💰</div>
-//         </div>
-
-//         <div className="bg-slate-900 border border-slate-800 p-6 rounded-2xl shadow-lg relative overflow-hidden">
-//           <p className="text-slate-500 text-xs font-bold uppercase tracking-wider mb-1">Total Liquid Assets</p>
-//           <h2 className="text-3xl font-black text-slate-100">৳{data.takaBalance.toFixed(2)}</h2>
-//           <span className="text-[10px] text-slate-500 block mt-1">* Combined calculation ready for instantaneous payout</span>
-//           <div className="absolute right-4 bottom-3 text-4xl opacity-[0.02]">💳</div>
-//         </div>
-//       </div>
-
-//       {/* Dynamic Link Box Area */}
-//       <div className="bg-slate-900 border border-slate-800 p-6 md:p-8 rounded-2xl shadow-xl max-w-3xl mb-12">
-//         <h3 className="text-lg font-bold text-slate-200 mb-1">Unique Invitation Hub</h3>
-//         <p className="text-sm text-slate-400 mb-5">Your profile tracking query listens natively to the dynamic network identity parameter below.</p>
-        
-//         <div className="flex flex-col sm:flex-row gap-3">
-//           <input
-//             type="text"
-//             readOnly
-//             value={data.referralLink || "Compiling routing assets..."}
-//             className="flex-1 bg-slate-950 border border-slate-800 rounded-xl p-3.5 text-sm text-slate-400 font-mono focus:outline-none select-all"
-//           />
-//           <button
-//             onClick={handleCopy}
-//             disabled={!data.referralLink}
-//             className={`sm:w-36 p-3.5 rounded-xl font-bold text-sm tracking-wide transition-all active:scale-95 ${
-//               copied 
-//                 ? "bg-emerald-500 text-slate-950 font-black" 
-//                 : "bg-gradient-to-r from-blue-500 to-indigo-600 text-white hover:opacity-95 disabled:opacity-50"
-//             }`}
-//           >
-//             {copied ? "Copied! ✓" : "Copy Link"}
-//           </button>
-//         </div>
-//       </div>
-
-//       {/* Relational Table Logic */}
-//       <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl">
-//         <h3 className="text-lg font-bold text-slate-200 mb-4">Relational Node History</h3>
-        
-//         <div className="overflow-x-auto">
-//           {data.referredFriends.length === 0 ? (
-//             <div className="text-center py-10 text-slate-500 text-sm tracking-wide">
-//               No sub-nodes linked yet. Spread your encryption link to populate database rows.
-//             </div>
-//           ) : (
-//             <table className="w-full text-left text-sm text-slate-400">
-//               <thead className="text-xs uppercase bg-slate-950 text-slate-300 border-b border-slate-800">
-//                 <tr>
-//                   <th className="p-4 tracking-wider">Node ID</th>
-//                   <th className="p-4 tracking-wider">Username</th>
-//                   <th className="p-4 tracking-wider">Status Verification</th>
-//                   <th className="p-4 tracking-wider">Yield Commission</th>
-//                   <th className="p-4 tracking-wider">Timestamp Log</th>
-//                 </tr>
-//               </thead>
-//               <tbody>
-//                 {data.referredFriends.map((user) => (
-//                   <tr key={user.id} className="border-b border-slate-800/50 hover:bg-slate-800/20 transition-all duration-150">
-//                     <td className="p-4 font-mono text-xs text-blue-400 font-bold">#{user.id}</td>
-//                     <td className="p-4 font-medium text-slate-200">{user.username}</td>
-//                     <td className="p-4">
-//                       <span className={`px-2.5 py-1 rounded-md text-[10px] font-black tracking-wider ${
-//                         user.status === "active" 
-//                           ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20" 
-//                           : "bg-amber-500/10 text-amber-400 border border-amber-500/20"
-//                       }`}>
-//                         {user.status.toUpperCase()}
-//                       </span>
-//                     </td>
-//                     <td className="p-4 text-emerald-400 font-bold">{user.bonus}</td>
-//                     <td className="p-4 text-xs font-mono text-slate-500">{user.date}</td>
-//                   </tr>
-//                 ))}
-//               </tbody>
-//             </table>
-//           )}
-//         </div>
-//       </div>
-//     </div>
-//   );
-// }
