@@ -8,14 +8,14 @@ export const fetchWalletData = createAsyncThunk(
       const res = await fetch("/api/dashboard/user-profile");
       const json = await res.json();
       if (!json.success) return rejectWithValue(json.error);
-      return json.data;
+      return json.data; // এখানে ইউজারের profile আইডি, ইমেইল সহ রিটার্ন করবে
     } catch (err) {
       return rejectWithValue(err.message);
     }
   }
 );
 
-// 📡 থাঙ্ক: মাইনিং কয়েন ক্লেইম করা
+// 📡 থাঙ্ক: মাইনিং কয়েন ক্লেইম করা
 export const claimMiningRewards = createAsyncThunk(
   "wallet/claimMiningRewards",
   async (amount, { rejectWithValue }) => {
@@ -81,6 +81,13 @@ export const syncToVault = createAsyncThunk(
 const walletSlice = createSlice({
   name: "wallet",
   initialState: {
+    // 🔐 নতুন অথেনটিকেশন ও ইউজার ডাটা স্টেট
+    userId: null,
+    email: "",
+    joined: null,
+    isAuthenticated: false,
+
+    // 💰 আগের ওয়ালেট ও ডিসপ্লে স্টেট
     name: "Loading...",
     avatar: "..",
     totalCoin: 0.00000000,
@@ -90,11 +97,23 @@ const walletSlice = createSlice({
     loading: false,
     error: null,
     isCoinAnimating: false,
-    // মাইনিং সেশনের জন্য নতুন স্টেট
     sessionId: null,
     miningHistory: [],
   },
   reducers: {
+    // 🧹 লগআউট এর সময় রিডাক্স স্টেট ম্যানুয়ালি রিসেট করার জন্য নতুন রিডিউসার
+    purgeSession: (state) => {
+      state.userId = null;
+      state.email = "";
+      state.joined = null;
+      state.isAuthenticated = false;
+      state.name = "Guest Node";
+      state.avatar = "??";
+      state.totalCoin = 0;
+      state.totalDollar = 0;
+      state.dbMiningWallet = 0;
+      state.miningHistory = [];
+    },
     updateBalances: (state, action) => {
       state.totalCoin = parseFloat(action.payload.newTotalCoin || 0);
       state.totalDollar = parseFloat(action.payload.newTotalDollar || 0);
@@ -131,13 +150,20 @@ const walletSlice = createSlice({
   },
   extraReducers: (builder) => {
     builder
-      // Fetch Wallet Data
+      // Fetch Wallet Data (এখানেই ইউজার ও প্রোফাইল ডাটা রিডাক্সে রাইট হবে)
       .addCase(fetchWalletData.pending, (state) => {
         state.loading = true;
         state.error = null;
       })
       .addCase(fetchWalletData.fulfilled, (state, action) => {
         state.loading = false;
+        
+        // 💾 সার্ভার রেসপন্স থেকে ইউজার স্পেসিফিক ডাটা স্টোর করা
+        state.userId = action.payload.id || null;
+        state.email = action.payload.email || "";
+        state.joined = action.payload.joined || null;
+        state.isAuthenticated = !!action.payload.id; // আইডি থাকলে ট্রু হবে
+
         state.name = action.payload.name || "User Node";
         state.avatar = action.payload.name ? action.payload.name.slice(0, 2).toUpperCase() : "UN";
         state.totalCoin = parseFloat(action.payload.totalCoin || 0);
@@ -147,7 +173,8 @@ const walletSlice = createSlice({
       })
       .addCase(fetchWalletData.rejected, (state, action) => {
         state.loading = false;
-        state.error = action.payload || "Failed to load wallet data.";
+        state.isAuthenticated = false;
+        state.error = action.payload || "Failed to load secure node data.";
       })
       
       // Claim Mining Rewards
@@ -200,8 +227,8 @@ const walletSlice = createSlice({
   },
 });
 
-// অ্যাকশন এক্সপোর্ট
 export const { 
+  purgeSession, // এক্সপোর্ট করা হলো
   updateBalances,
   updateMiningWallet, 
   updateTotalAndMiningWallet, 
@@ -214,92 +241,3 @@ export const {
 } = walletSlice.actions;
 
 export default walletSlice.reducer;
-
-
-// import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
-
-// // 📡 ১. থাঙ্ক (Thunk): ডাটাবেজ থেকে ইউজারের প্রোফাইল ও ওয়ালেটের কম্বাইন্ড ডাটা লোড করা
-// export const fetchWalletData = createAsyncThunk(
-//   "wallet/fetchWalletData",
-//   async (_, { rejectWithValue }) => {
-//     try {
-//       const res = await fetch("/api/dashboard/user-profile");
-//       const json = await res.json();
-//       if (!json.success) return rejectWithValue(json.error);
-//       return json.data; // এই ডাটার ভেতরেই এপিআই রুটের পাঠানো অবজেক্টটি আছে
-//     } catch (err) {
-//       return rejectWithValue(err.message);
-//     }
-//   }
-// );
-
-// const walletSlice = createSlice({
-//   name: "wallet",
-//   initialState: {
-//     name: "Loading...",
-//     avatar: "..",
-//     totalCoin: 0.00000000,       // মেইন ওয়ালেট কয়েন ব্যালেন্স
-//     totalDollar: 0.00,           // 🪙 [NEW] কয়েন কনভার্ট হয়ে এখানে ডলার জমা হবে
-//     dbMiningWallet: 0.00000000,  // মাইনিং ওয়ালেটের গ্লোবাল স্টেট
-//     miningSpeed: 0.0,
-//     loading: false,
-//     error: null,
-//     isCoinAnimating: false,
-//   },
-//   reducers: {
-//     // 🎯 [NEW] কয়েন কনভার্ট বাটনে ক্লিক করার পর ফ্রন্টএন্ডে ইনস্ট্যান্ট ব্যালেন্স আপডেট করার রিডিউসার
-//     updateBalances: (state, action) => {
-//       state.totalCoin = parseFloat(action.payload.newTotalCoin || 0);
-//       state.totalDollar = parseFloat(action.payload.newTotalDollar || 0);
-//     },
-//     collectMiningRewards: (state, action) => {
-//       state.totalCoin = parseFloat(action.payload.newTotalCoin || 0);
-//       state.dbMiningWallet = parseFloat(action.payload.newMiningWallet || 0);
-//     },
-//     updateMiningWallet: (state, action) => {
-//       state.dbMiningWallet = parseFloat(action.payload || 0);
-//     },
-//     updateTotalAndMiningWallet: (state, action) => {
-//       state.totalCoin = parseFloat(action.payload.newTotalCoin || 0);
-//       state.dbMiningWallet = parseFloat(action.payload.newMiningWallet || 0);
-//     },
-//     setCoinAnimation: (state, action) => {
-//       state.isCoinAnimating = action.payload;
-//     }
-//   },
-//   extraReducers: (builder) => {
-//     builder
-//       .addCase(fetchWalletData.pending, (state) => {
-//         state.loading = true;
-//         state.error = null;
-//       })
-//       .addCase(fetchWalletData.fulfilled, (state, action) => {
-//         state.loading = false;
-        
-//         // 👤 ইউজার প্রোফাইল ডাটা ম্যাপ
-//         state.name = action.payload.name || "User Node";
-//         state.avatar = action.payload.name ? action.payload.name.slice(0, 2).toUpperCase() : "UN";
-        
-//         // 💳 🎯 এপিআই রেসপন্সের কী (Key) অনুযায়ী নিখুঁত ম্যাপিং
-//         state.totalCoin = parseFloat(action.payload.totalCoin || 0);
-//         state.totalDollar = parseFloat(action.payload.totalDollar || 0); // 💵 ডাটাবেজের 'totaldollar' কলামের ভ্যালু সিঙ্ক
-//         state.dbMiningWallet = parseFloat(action.payload.miningWallet || 0);
-//         state.miningSpeed = parseFloat(action.payload.miningSpeed || 1.5);
-//       })
-//       .addCase(fetchWalletData.rejected, (state, action) => {
-//         state.loading = false;
-//         state.error = action.payload || "Failed to load wallet data.";
-//       });
-//   },
-// });
-
-// // অ্যাকশন এক্সপোর্ট
-// export const { 
-//   updateBalances, // 👈 নতুন এডিটেড একশন
-//   updateMiningWallet, 
-//   updateTotalAndMiningWallet, 
-//   collectMiningRewards, 
-//   setCoinAnimation 
-// } = walletSlice.actions;
-
-// export default walletSlice.reducer;
