@@ -5,16 +5,19 @@ import { cookies } from 'next/headers';
 
 const SESSION_EXPIRY_HOURS = 24;
 
-// 📥 সেশন তৈরি করা
+/**
+ * 📥 সেশন তৈরি করা (Create Session)
+ * নতুন ইন্ডাস্ট্রি স্কিমা অনুযায়ী 'session_token' এবং 'user_id' ব্যবহার করা হয়েছে
+ */
 export async function createSession(userId) {
   const sessionToken = uuidv4(); 
   const expiresAt = new Date();
   expiresAt.setHours(expiresAt.getHours() + SESSION_EXPIRY_HOURS);
 
   try {
-    // 🛠️ ফিক্সড: "userId" এর বদলে এখন "user_id" ব্যবহার করা হয়েছে
+    // 🛠️ নতুন স্কিমা অনুযায়ী কলামের নাম: session_token, user_id, expires
     await query(
-      'INSERT INTO "Session" ("sessionToken", "user_id", "expires") VALUES ($1, $2, $3)',
+      'INSERT INTO "Session" ("session_token", "user_id", "expires") VALUES ($1, $2, $3)',
       [sessionToken, userId, expiresAt]
     );
 
@@ -29,19 +32,159 @@ export async function createSession(userId) {
 
     return sessionToken;
   } catch (error) {
-    console.error("Failed to create session:", error);
+    console.error("Failed to create secure session:", error);
     throw error;
   }
 }
 
-// 📤 সেশন ডাটা রিড করা (এখন একদম সহজ ও ক্লিন জয়েন)
+/**
+ * 📤 সেশন ডাটা রিড করা (Get Session)
+ * রিডাক্স (walletSlice) এবং এপিআই রুটের কি-নামের সাথে সামঞ্জস্য রেখে ডাটা জয়েন করা হয়েছে
+ */
+export async function getSession() {
+  const cookieStore = await cookies();
+  const sessionToken = cookieStore.get('session_token')?.value;
+  if (!sessionToken) return null;
+
+  try {
+    // 🚀 নতুন কলাম নেম (s."session_token", s."user_id") অনুযায়ী ক্লিন ইনার জয়েন
+    // কোটেশন বা স্ট্রিং জনিত সমস্যা এড়াতে সেফটি মেথড যোগ করা হয়েছে
+    const result = await query(
+      `SELECT 
+        s."session_id" AS "sessionId", 
+        s."session_token" AS "sessionToken", 
+        s."expires" AS "sessionExpires", 
+        w."user_id" AS "id", 
+        w."username", 
+        w."user_email" AS "email",
+        COALESCE(w."total_coin", 0) AS "totalCoin",
+        COALESCE(w."total_dollar", 0) AS "totalDollar",
+        COALESCE(w."mining_wallet", 0) AS "miningWallet",
+        w."mining_speed" AS "miningSpeed"
+       FROM "Session" s
+       JOIN "user_wallets" w ON REPLACE(s."user_id"::text, '"', '') = REPLACE(w."user_id"::text, '"', '')
+       WHERE s."session_token" = $1 AND s."expires" > NOW()`,
+      [sessionToken]
+    );
+
+    // 🎯 ফিক্সড: result.fields এর বদলে অবশ্যই result.rows ব্যবহার করতে হবে
+    if (result.rows.length > 0) {
+      return result.rows[0]; // সরাসরি { id, username, email, totalCoin... } অবজেক্ট রিটার্ন করবে
+    }
+
+    return null;
+  } catch (error) {
+    console.error("Failed to fetch secure session from Postgres:", error);
+    return null;
+  }
+}
+
+/**
+ * ❌ সেশন ডিলিট করা (Delete Session / Logout)
+ */
+export async function deleteSession() {
+  const cookieStore = await cookies();
+  const sessionToken = cookieStore.get('session_token')?.value;
+  if (!sessionToken) return;
+
+  try {
+    // 🛠️ নতুন কলামের নাম 'session_token' অনুযায়ী ডিলিট কুয়েরি
+    await query(
+      'DELETE FROM "Session" WHERE "session_token" = $1',
+      [sessionToken]
+    );
+    cookieStore.delete('session_token');
+  } catch (error) {
+    console.error("Failed to purge session from system:", error);
+    throw error;
+  }
+}
+
+
+// app/lib/auth.js
+// import { query } from './db';
+// import { v4 as uuidv4 } from 'uuid';
+// import { cookies } from 'next/headers';
+
+// const SESSION_EXPIRY_HOURS = 24;
+
+// // 📥 সেশন তৈরি করা
+// export async function createSession(userId) {
+//   const sessionToken = uuidv4(); 
+//   const expiresAt = new Date();
+//   expiresAt.setHours(expiresAt.getHours() + SESSION_EXPIRY_HOURS);
+
+//   try {
+//     // 🛠️ ফিক্সড: "userId" এর বদলে এখন "user_id" ব্যবহার করা হয়েছে
+//     await query(
+//       'INSERT INTO "Session" ("sessionToken", "user_id", "expires") VALUES ($1, $2, $3)',
+//       [sessionToken, userId, expiresAt]
+//     );
+
+//     const cookieStore = await cookies();
+//     cookieStore.set('session_token', sessionToken, {
+//       httpOnly: true,
+//       secure: process.env.NODE_ENV === 'production',
+//       sameSite: 'lax',
+//       expires: expiresAt,
+//       path: '/',
+//     });
+
+//     return sessionToken;
+//   } catch (error) {
+//     console.error("Failed to create session:", error);
+//     throw error;
+//   }
+// }
+
+// // 📤 সেশন ডাটা রিড করা (এখন একদম সহজ ও ক্লিন জয়েন)
+// // export async function getSession() {
+// //   const cookieStore = await cookies();
+// //   const sessionToken = cookieStore.get('session_token')?.value;
+// //   if (!sessionToken) return null;
+
+// //   try {
+// //     // 🚀 ফিক্সড কুয়েরি: s."user_id" এর সাথে w."user_id" সরাসরি ম্যাচ করানো হয়েছে
+// //     const result = await query(
+// //       `SELECT 
+// //         s."id" AS "sessionId", 
+// //         s."sessionToken", 
+// //         s."expires" AS "sessionExpires", 
+// //         w."user_id" AS "id", 
+// //         w."username", 
+// //         w."user_email" AS "email",
+// //         COALESCE(w."total_coin", 0) AS "totalCoin",
+// //         COALESCE(w."total_dollar", 0) AS "totalDollar",
+// //         COALESCE(w."mining_wallet", 0) AS "miningWallet",
+// //         w."mining_speed" AS "miningSpeed"
+// //        FROM "Session" s
+// //        JOIN "user_wallets" w ON s."user_id"::text = w."user_id"::text
+// //        WHERE s."sessionToken" = $1`, 
+// //       [sessionToken]
+// //     );
+
+// //     if (result.rows.length === 0) return null;
+
+// //     // টাইম এক্সপায়ারি চেক (কোড লেভেলে সেফটি)
+// //     const session = result.rows[0];
+// //     if (new Date(session.sessionExpires) < new Date()) {
+// //       return null;
+// //     }
+
+// //     return session;
+// //   } catch (error) {
+// //     console.error("Failed to get session:", error);
+// //     return null;
+// //   }
+// // }
+
 // export async function getSession() {
 //   const cookieStore = await cookies();
 //   const sessionToken = cookieStore.get('session_token')?.value;
 //   if (!sessionToken) return null;
-
+//   // console.log("working");
 //   try {
-//     // 🚀 ফিক্সড কুয়েরি: s."user_id" এর সাথে w."user_id" সরাসরি ম্যাচ করানো হয়েছে
+//     // 🚀 ফিক্সড কুয়েরি: s."userId" এবং w."user_id" এর চারপাশের ডাবল কোটেশন ক্লিন করে ম্যাচ করানো হলো
 //     const result = await query(
 //       `SELECT 
 //         s."id" AS "sessionId", 
@@ -55,81 +198,41 @@ export async function createSession(userId) {
 //         COALESCE(w."mining_wallet", 0) AS "miningWallet",
 //         w."mining_speed" AS "miningSpeed"
 //        FROM "Session" s
-//        JOIN "user_wallets" w ON s."user_id"::text = w."user_id"::text
-//        WHERE s."sessionToken" = $1`, 
+//        JOIN "user_wallets" w ON REPLACE(s."user_id"::text, '"', '') = REPLACE(w."user_id"::text, '"', '')
+//        WHERE s."sessionToken" = $1 AND s."expires" > NOW()`,
 //       [sessionToken]
 //     );
+//     // console.log('auth page result',result);
+//     // console.log('auth page return',result.rows[0]);
 
-//     if (result.rows.length === 0) return null;
-
-//     // টাইম এক্সপায়ারি চেক (কোড লেভেলে সেফটি)
-//     const session = result.rows[0];
-//     if (new Date(session.sessionExpires) < new Date()) {
-//       return null;
+//     if (result.fields.length > 0) {
+//       return result.fields[0] || null;
 //     }
 
-//     return session;
+//     return null;
 //   } catch (error) {
-//     console.error("Failed to get session:", error);
+//     console.error("Failed to get session from database architecture:", error);
 //     return null;
 //   }
 // }
 
-export async function getSession() {
-  const cookieStore = await cookies();
-  const sessionToken = cookieStore.get('session_token')?.value;
-  if (!sessionToken) return null;
-  // console.log("working");
-  try {
-    // 🚀 ফিক্সড কুয়েরি: s."userId" এবং w."user_id" এর চারপাশের ডাবল কোটেশন ক্লিন করে ম্যাচ করানো হলো
-    const result = await query(
-      `SELECT 
-        s."id" AS "sessionId", 
-        s."sessionToken", 
-        s."expires" AS "sessionExpires", 
-        w."user_id" AS "id", 
-        w."username", 
-        w."user_email" AS "email",
-        COALESCE(w."total_coin", 0) AS "totalCoin",
-        COALESCE(w."total_dollar", 0) AS "totalDollar",
-        COALESCE(w."mining_wallet", 0) AS "miningWallet",
-        w."mining_speed" AS "miningSpeed"
-       FROM "Session" s
-       JOIN "user_wallets" w ON REPLACE(s."user_id"::text, '"', '') = REPLACE(w."user_id"::text, '"', '')
-       WHERE s."sessionToken" = $1 AND s."expires" > NOW()`,
-      [sessionToken]
-    );
-    // console.log('auth page result',result);
-    // console.log('auth page return',result.rows[0]);
+// // ❌ সেশন ডিলিট করা
+// export async function deleteSession() {
+//   const cookieStore = await cookies();
+//   const sessionToken = cookieStore.get('session_token')?.value;
+//   if (!sessionToken) return;
 
-    if (result.fields.length > 0) {
-      return result.fields[0] || null;
-    }
-
-    return null;
-  } catch (error) {
-    console.error("Failed to get session from database architecture:", error);
-    return null;
-  }
-}
-
-// ❌ সেশন ডিলিট করা
-export async function deleteSession() {
-  const cookieStore = await cookies();
-  const sessionToken = cookieStore.get('session_token')?.value;
-  if (!sessionToken) return;
-
-  try {
-    await query(
-      'DELETE FROM "Session" WHERE "sessionToken" = $1',
-      [sessionToken]
-    );
-    cookieStore.delete('session_token');
-  } catch (error) {
-    console.error("Failed to delete session:", error);
-    throw error;
-  }
-}
+//   try {
+//     await query(
+//       'DELETE FROM "Session" WHERE "sessionToken" = $1',
+//       [sessionToken]
+//     );
+//     cookieStore.delete('session_token');
+//   } catch (error) {
+//     console.error("Failed to delete session:", error);
+//     throw error;
+//   }
+// }
 
 
 // import { query } from './db'; // 🚀 ফিক্সড: db থেকে সরাসরি আমাদের গ্লোবাল query ফাংশনটি ইম্পোর্ট করা হলো
