@@ -80,7 +80,7 @@ export function AuthProvider({ children }) {
       }
 
       toast.dismiss(loadingToast);
-      toast.success("🚀 Node created successfully! Logging in...");
+      toast.success("🚀 User created successfully! Logging in...");
 
       await checkSession(); // অটো-লগইন সিঙ্ক
       return data;
