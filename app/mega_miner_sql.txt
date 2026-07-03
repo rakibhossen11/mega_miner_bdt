@@ -1,0 +1,77 @@
+-- =========================================================================
+-- MEGA MINER BDT - 100% PROFESSIONAL & BUG-FREE ARCHITECTURE (2026)
+-- =========================================================================
+
+-- ১. USERS TABLE (মেইন ইউজার বা মেম্বার টেবিল)
+CREATE TABLE "users" (
+    "user_id" SERIAL,                             -- 🎯 একদম ফিক্সড এবং ইউনিক প্রাইমারি কি
+    "username" VARCHAR(50) UNIQUE NOT NULL,       
+    "user_email" VARCHAR(100) UNIQUE NOT NULL,         
+    "password_hash" VARCHAR(255) NOT NULL,        
+    "referred_by" INTEGER NULL,                   -- অন্য কোনো ইউজারের user_id থাকবে এখানে
+    "status" VARCHAR(20) DEFAULT 'active',         
+    "created_at" TIMESTAMP WITHOUT TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    
+    CONSTRAINT "users_pkey" PRIMARY KEY ("user_id")
+);
+
+
+-- ২. USER_WALLETS TABLE (ইউজারের মাইনিং ও ব্যালেন্স ওয়ালেট)
+CREATE TABLE "user_wallets" (
+    "wallet_id" SERIAL,                           
+    "user_id" INTEGER UNIQUE NOT NULL,            -- 🤝 users টেবিলের user_id এর সাথে হুবহু ম্যাচড
+    "user_email" VARCHAR(255) UNIQUE NOT NULL,     
+    "username" VARCHAR(50) NULL,                  
+    "total_coin" NUMERIC(20, 8) DEFAULT 100.00000000, 
+    "total_dollar" NUMERIC(10, 2) DEFAULT 0.00,    
+    "mining_speed" NUMERIC(5, 2) DEFAULT 1.50,     
+    "daily_bonus" NUMERIC(10, 2) DEFAULT 0.00,
+    "hybrid_speed" NUMERIC(5, 2) DEFAULT 0.00,
+    "boost_power" NUMERIC(5, 2) DEFAULT 1.00,
+    "last_claim_daily_bonus_time" TIMESTAMP WITH TIME ZONE NULL,
+    "last_claim_reward_time" TIMESTAMP WITH TIME ZONE NULL,
+    "mining_wallet" NUMERIC(20, 8) DEFAULT 0.00000000, 
+    "created_at" TIMESTAMP WITHOUT TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    "updated_at" TIMESTAMP WITHOUT TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "user_wallets_pkey" PRIMARY KEY ("wallet_id"),
+    CONSTRAINT "user_wallets_user_id_fkey" FOREIGN KEY ("user_id") 
+        REFERENCES "users"("user_id") ON DELETE CASCADE ON UPDATE CASCADE
+);
+
+
+-- ৩. SESSION TABLE (লগইন সেশন ট্র্যাকিং টেবিল)
+CREATE TABLE "Session" (
+    "session_id" SERIAL,                          
+    "user_id" INTEGER NOT NULL,                   -- 🤝 users টেবিলের user_id এর সাথে হুবহু ম্যাচড
+    "session_token" VARCHAR(255) UNIQUE NOT NULL, -- 🌐 ব্রাউজার কুকি এবং সেশনের জন্য
+    "expires" TIMESTAMP WITHOUT TIME ZONE NOT NULL, 
+    "created_at" TIMESTAMP WITHOUT TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "Session_pkey" PRIMARY KEY ("session_id"),
+    CONSTRAINT "Session_user_id_fkey" FOREIGN KEY ("user_id") 
+        REFERENCES "users"("user_id") ON DELETE CASCADE ON UPDATE CASCADE
+);
+
+
+-- ৪. REFERRALS TABLE (রেফারেল হিস্ট্রি এবং বোনাস ট্র্যাক)
+CREATE TABLE "referrals" (
+    "referral_id" SERIAL,                         
+    "referrer_id" INTEGER NOT NULL,               -- যিনি রেফার করেছেন তার user_id
+    "referrer_username" VARCHAR(50) NOT NULL,
+    "referred_id" INTEGER NOT NULL,               -- যিনি নতুন জয়েন করেছেন তার user_id
+    "referred_username" VARCHAR(50) NOT NULL,
+    "referrer_bonus_coins" INTEGER DEFAULT 500,   
+    "referred_bonus_coins" INTEGER DEFAULT 100,   
+    "created_at" TIMESTAMP WITHOUT TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    "updated_at" TIMESTAMP WITHOUT TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "referrals_pkey" PRIMARY KEY ("referral_id"),
+    CONSTRAINT "referrals_referrer_id_fkey" FOREIGN KEY ("referrer_id") REFERENCES "users"("user_id") ON DELETE CASCADE,
+    CONSTRAINT "referrals_referred_id_fkey" FOREIGN KEY ("referred_id") REFERENCES "users"("user_id") ON DELETE CASCADE
+);
+
+-- ⚡ দ্রুত কুয়েরি এক্সিকিউশনের জন্য পারফরম্যান্স বুস্টার ইনডেক্স
+CREATE INDEX "user_wallets_user_id_idx" ON "user_wallets"("user_id");
+CREATE INDEX "Session_user_id_idx" ON "Session"("user_id");
+CREATE INDEX "referrals_referrer_id_idx" ON "referrals"("referrer_id");

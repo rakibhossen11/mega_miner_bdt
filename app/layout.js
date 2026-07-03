@@ -4,7 +4,7 @@ import "./globals.css";
 import { ReduxProvider } from "./store/provider";
 import BottomNavbar from "./components/BottomNavbar";
 import TopNavbar from "./components/TopNavbar";
-import { usePathname } from "next/navigation"; 
+import { usePathname } from "next/navigation";
 import { Toaster } from "react-hot-toast"; // 🍿 গ্লোবাল টোস্ট কন্টেইনার
 import { AuthProvider } from "./components/AuthProvider"; // 🔑 ইম্পোর্ট করা আছে
 
@@ -20,10 +20,11 @@ export default function RootLayout({ children }) {
   return (
     <html lang="en" className="h-full antialiased">
       <body className="h-full bg-[#060907] text-white selection:bg-lime-500/20 overflow-x-hidden m-0 p-0">
-        <ReduxProvider>
-          {/* 🚀 AuthProvider এখানে যুক্ত করা হলো যেন অ্যাডমিন এবং ইউজার সব রুটই এর অ্যাক্সেস পায় */}
-          <AuthProvider>
-            
+        <AuthProvider>
+          <ReduxProvider>
+            {/* 🚀 AuthProvider এখানে যুক্ত করা হলো যেন অ্যাডমিন এবং ইউজার সব রুটই এর অ্যাক্সেস পায় */}
+
+
             {/* গ্লোবাল টোস্ট নোটিফিকেশন এলার্ট সিস্টেম */}
             <Toaster position="top-center" reverseOrder={false} />
 
@@ -38,7 +39,7 @@ export default function RootLayout({ children }) {
               /* 📱 ইউজার মোড: সকল স্ক্রিনে আপনার আগের সেইম মোবাইল কন্টেইনার ফ্রেম (হাইট লকড) */
               <div className="h-full w-full flex justify-center items-center p-0 sm:p-4 overflow-hidden fixed inset-0">
                 <div className="w-full max-w-md h-full sm:h-[840px] bg-[#0a0f0c] sm:border sm:border-lime-950/40 sm:rounded-[32px] shadow-2xl overflow-hidden relative flex flex-col">
-                  
+
                   {/* ১. গ্লোবাল টপ বার (লগইন/অথ পেজ হলে রেন্ডার হবে না) */}
                   {!isAuthRoute && <TopNavbar />}
 
@@ -54,8 +55,9 @@ export default function RootLayout({ children }) {
               </div>
             )}
 
-          </AuthProvider>
-        </ReduxProvider>
+
+          </ReduxProvider>
+        </AuthProvider>
       </body>
     </html>
   );
