@@ -1,74 +1,62 @@
 import { NextResponse } from "next/server";
 import { query } from "@/app/lib/db";
-import jwt from "jsonwebtoken";
-
-const JWT_SECRET = process.env.JWT_SECRET || "megaminer_super_secret_node_key_2026";
+import { getSession } from "@/app/lib/auth"; // 🔐 আমাদের আপডেট করা সিকিউর ডাটাবেজ সেশন ইঞ্জিন
 
 export async function GET(request) {
   try {
-    // 1. Security Handshake: Extract Token from HTTP-Only Cookies
-    const tokenCookie = request.cookies.get("token");
-    const token = tokenCookie?.value;
+    // ১. সিকিউরিটি হ্যান্ডশেক: সেশন থেকে লাইভ ইউজার ডাটা বের করা
+    const session = await getSession();
 
-    if (!token) {
+    if (!session || !session.id) {
       return NextResponse.json(
-        { success: false, error: "Authentication token missing. Please log in again." },
+        { success: false, error: "Authentication token missing or session expired. Please log in again." },
         { status: 401 }
       );
     }
 
-    // 2. Decode & Verify JWT Token Payload securely
-    let decodedSession;
-    try {
-      decodedSession = jwt.verify(token, JWT_SECRET);
-    } catch (jwtError) {
-      return NextResponse.json(
-        { success: false, error: "Session expired or corrupted. Re-authenticate." },
-        { status: 401 }
-      );
-    }
+    const currentUserId = session.id;       // লগইন থাকা ইউজারের ৫-ডিজিটের ইউনিক user_id (integer)
+    const currentLoggedUser = session.username; // লগইন থাকা ইউজারের username
 
-    const currentLoggedId = decodedSession.id;       // Logged in User's 5-digit unique ID
-    const currentLoggedUser = decodedSession.username; // Logged in User's username
-
-    // 3. Query A: Fetch Current Wallet Balances (total_coin, total_dollar)
-    const walletQuery = "SELECT total_coin, total_dollar FROM user_wallets WHERE user_id = $1";
-    const walletRes = await query(walletQuery, [currentLoggedId]);
+    // ২. Query A: নতুন ওয়ালেট টেবিল থেকে কারেন্ট ব্যালেন্স তুলে আনা
+    const walletQuery = 'SELECT "total_coin", "total_dollar" FROM "user_wallets" WHERE "user_id" = $1';
+    const walletRes = await query(walletQuery, [currentUserId]);
     
-    const totalCoin = parseInt(walletRes.rows[0]?.total_coin || 0);
+    const totalCoin = parseFloat(walletRes.rows[0]?.total_coin || 0);
     const totalDollar = parseFloat(walletRes.rows[0]?.total_dollar || 0.00);
 
-    // Query B: Calculate total referrals and total earnings from history ledger
+    // -- ৩. Query B: নতুন "referrals" টেবিল থেকে টোটাল রেফারেল কাউন্ট এবং আর্নিং ক্যালকুলেট করা
     const referralStatsQuery = `
       SELECT 
-        COUNT(*) as total_count,
-        COALESCE(SUM(referrer_bonus_coins), 0) as total_earnings
-      FROM referral_earnings 
-      WHERE referrer_id = $1
+        COUNT(*) AS total_count,
+        COALESCE(SUM("referrer_bonus_coins"), 0) AS total_earnings
+      FROM "referrals" 
+      WHERE "referrer_id" = $1
     `;
-    const statsRes = await query(referralStatsQuery, [currentLoggedId]);
+    const statsRes = await query(referralStatsQuery, [currentUserId]);
     const totalReferrals = parseInt(statsRes.rows[0]?.total_count || 0);
     const referralEarnings = parseInt(statsRes.rows[0]?.total_earnings || 0);
 
-    // Query C: Fetch full relational log rows from referral_earnings table
+    // -- ৪. Query C: নতুন "referrals" টেবিল থেকে রিলেশনাল হিস্ট্রি রো তুলে আনা (ফ্রন্টএন্ড টেবিল সিঙ্কের জন্য)
     const historyQuery = `
       SELECT 
-        referred_id, 
-        referred_username, 
-        referrer_bonus_coins,
-        referred_bonus_coins,
-        created_at
-      FROM referral_earnings 
-      WHERE referrer_id = $1 
-      ORDER BY created_at DESC 
+        "referral_id",
+        "referred_id", 
+        "referred_username", 
+        "referrer_bonus_coins",
+        "referred_bonus_coins",
+        "created_at"
+      FROM "referrals" 
+      WHERE "referrer_id" = $1 
+      ORDER BY "created_at" DESC 
       LIMIT 15
     `;
-    const historyRes = await query(historyQuery, [currentLoggedId]);
+    const historyRes = await query(historyQuery, [currentUserId]);
 
-    // 4. Formulation of standard invitation link using the unique username
-    const referralLink = `http://localhost:3000/auth/register?ref=${currentLoggedUser}`;
+    // ৫. ডাইনামিক ডোমেইন লিঙ্ক জেনারেটর (হোস্টিং ফ্রেন্ডলি)
+    const origin = request.nextUrl.origin; // লোকালহোস্ট বা লাইভ ডোমেইন অটো ডিটেক্ট করবে
+    const referralLink = `${origin}/auth/register?ref=${currentLoggedUser}`;
 
-    // 5. Package and emit optimized JSON data stream
+    // ৬. অপ্টিমাইজড JSON ডাটা স্ট্রিম ফ্রন্টএন্ডে পাঠানো
     return NextResponse.json({
       success: true,
       data: {
@@ -77,7 +65,7 @@ export async function GET(request) {
         totalReferrals: totalReferrals,
         referralEarnings: referralEarnings,
         referralLink: referralLink,
-        referredFriends: historyRes.rows // Emits the exact DB rows seamlessly
+        referredFriends: historyRes.rows // আপনার ফ্রন্টএন্ড রেফারেল পেজের লুপের সাথে ১০০% সিঙ্কড
       }
     }, { status: 200 });
 

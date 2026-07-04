@@ -1,6 +1,19 @@
 "use client";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import toast from "react-hot-toast"; // 🚀 গ্লোবাল টোস্ট ব্যবহার
+import { 
+  Network, 
+  Wallet, 
+  Copy, 
+  Check, 
+  AlertTriangle, 
+  RefreshCcw, 
+  Users, 
+  Calendar,
+  Layers,
+  ShieldCheck
+} from "lucide-react"; // 🚀 সাইবার থিম আইকনসমূহ
 
 export default function ReferralPage() {
   const router = useRouter();
@@ -11,14 +24,14 @@ export default function ReferralPage() {
     totalReferrals: 0,
     referralEarnings: 0,
     referralLink: "",
-    referredFriends: []
+    referredFriends: [] // 🤝 referrals টেবিল থেকে আসা হিস্ট্রি রো
   });
   
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [copied, setCopied] = useState(false);
 
-  // Sync state data engine with live secure API endpoint
+  // 📡 ডাটাবেজ এবং সেশন মেকানিজম থেকে লাইভ স্ট্যাটাস ফেচ করার ইঞ্জিন
   useEffect(() => {
     async function getLiveStats() {
       try {
@@ -31,10 +44,11 @@ export default function ReferralPage() {
           setError(null);
         } else {
           if (res.status === 401) {
+            toast.error("Session expired. Redirecting to login...");
             router.push("/auth/login");
             return;
           }
-          setError(json.error || "Failed to load dynamic pipeline rows.");
+          setError(json.error || "Failed to load dynamic network cluster rows.");
         }
       } catch (err) {
         setError("Network sync error. Check database infrastructure status.");
@@ -46,42 +60,41 @@ export default function ReferralPage() {
     getLiveStats();
   }, [router]);
 
+  // 📋 কপি বাটন হ্যান্ডেলার
   const handleCopy = () => {
     if (!data.referralLink) return;
     navigator.clipboard.writeText(data.referralLink);
     setCopied(true);
+    toast.success("Referral Link copied!");
     setTimeout(() => setCopied(false), 2000);
   };
 
-  // High-Fidelity Skeleton Pulse Effect for seamless UX
+  // ⏳ হাই-ফিডেলিটি কন্টেইনার পালস স্কেলিটন লোডার
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#060d08] text-white p-6 animate-pulse space-y-8">
-        <div className="h-7 bg-[#121b15] w-1/3 rounded-xl"></div>
-        <div className="h-40 bg-[#121b15] rounded-3xl"></div>
-        <div className="grid grid-cols-2 gap-4">
-          <div className="h-28 bg-[#121b15] rounded-2xl"></div>
-          <div className="h-28 bg-[#121b15] rounded-2xl"></div>
-        </div>
-        <div className="h-28 bg-[#121b15] rounded-2xl max-w-xl mx-auto"></div>
-        <div className="h-56 bg-[#121b15] rounded-3xl"></div>
+      <div className="min-h-screen bg-[#090d16] text-white p-6 animate-pulse space-y-6 flex flex-col items-center justify-center">
+        <div className="h-12 bg-slate-900/60 border border-slate-800/40 w-full max-w-xl rounded-2xl"></div>
+        <div className="h-64 bg-slate-900/60 border border-slate-800/40 w-full max-w-xl rounded-[24px]"></div>
+        <div className="h-32 bg-slate-900/60 border border-slate-800/40 w-full max-w-xl rounded-2xl"></div>
       </div>
     );
   }
 
-  // Graceful Error Boundary Handler
+  // ⚠️ এরর বাউন্ডারি হ্যান্ডেলার
   if (error) {
     return (
-      <div className="min-h-screen bg-[#060d08] text-white p-6 flex flex-col items-center justify-center">
-        <div className="bg-red-500/10 border border-red-500/20 p-8 rounded-3xl text-center max-w-sm shadow-2xl shadow-red-500/10 backdrop-blur-sm">
-          <span className="text-5xl">⚠️</span>
-          <h3 className="text-lg font-black text-red-400 mt-4 tracking-wide uppercase">Network Breach Detected</h3>
-          <p className="text-zinc-500 text-xs mt-1.5 leading-relaxed">{error}</p>
+      <div className="min-h-screen bg-[#090d16] text-white p-6 flex flex-col items-center justify-center antialiased">
+        <div className="bg-red-500/5 border border-red-500/20 p-8 rounded-2xl text-center max-w-sm shadow-2xl backdrop-blur-2xl">
+          <div className="w-12 h-12 bg-red-500/10 border border-red-500/20 text-red-400 rounded-xl flex items-center justify-center mx-auto mb-4">
+            <AlertTriangle className="w-5 h-5" />
+          </div>
+          <h3 className="text-base font-bold text-red-400 tracking-wide uppercase">Pipeline Breach</h3>
+          <p className="text-slate-400 text-xs mt-2 leading-relaxed">{error}</p>
           <button 
             onClick={() => window.location.reload()} 
-            className="mt-6 w-full py-3 bg-gradient-to-r from-red-600 to-rose-600 text-xs text-white font-black px-5 rounded-xl transition-all active:scale-95 shadow-lg shadow-red-500/20"
+            className="mt-6 w-full py-3 bg-red-500/10 hover:bg-red-500/20 text-xs text-red-400 border border-red-500/30 font-bold rounded-xl transition-all active:scale-[0.98] cursor-pointer"
           >
-            Retry Quantum Handshake
+            Retry Secure Handshake
           </button>
         </div>
       </div>
@@ -89,145 +102,160 @@ export default function ReferralPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#060d08] text-white p-4 pb-24 md:pb-6 font-sans antialiased selection:bg-lime-500/30">
+    <div className="min-h-screen bg-[#090d16] text-white p-4 pb-24 md:pb-6 font-sans antialiased selection:bg-amber-500/30">
       
-      {/* 🚀 Top Header Component */}
-      <div className="max-w-xl mx-auto mb-6 flex justify-between items-center bg-[#0d160f]/60 border border-lime-950/40 p-4 rounded-2xl backdrop-blur-md shadow-xl">
-        <div>
-          <h1 className="text-xl font-black bg-gradient-to-r from-lime-400 to-cyan-400 bg-clip-text text-transparent uppercase tracking-wider">
-            Affiliate Node Hub
-          </h1>
-          <p className="text-zinc-500 text-[11px] font-medium">Expand your network cluster to inject coin yields.</p>
+      {/* 🚀 টপ হেডার প্যানেল */}
+      <div className="max-w-xl mx-auto mb-5 flex justify-between items-center bg-[#111827]/60 border border-slate-800/80 p-4 rounded-2xl backdrop-blur-2xl shadow-2xl">
+        <div className="flex items-center gap-3">
+          <div className="p-2 bg-amber-500/10 rounded-xl border border-amber-500/20 text-amber-500">
+            <Network className="w-4 h-4" />
+          </div>
+          <div>
+            <h1 className="text-base font-extrabold text-white uppercase tracking-wider">
+              Affiliate User Hub
+            </h1>
+            <p className="text-slate-400 text-[10px] font-medium">Expand your cluster network to inject yields.</p>
+          </div>
         </div>
-        <div className="text-right bg-[#09110b] border border-lime-950 px-3 py-1 rounded-xl">
-          <p className="text-[9px] text-zinc-600 font-bold uppercase tracking-widest leading-none">Main Balance</p>
-          <p className="text-xs font-mono font-black text-lime-400 flex items-center gap-1 justify-end mt-1.5 leading-none">
-            🪙 {data.totalCoin.toFixed(0)} <span className="text-zinc-500 font-normal">D</span>
+        <div className="text-right bg-slate-950/80 border border-slate-800/60 px-3 py-1.5 rounded-xl">
+          <p className="text-[9px] text-slate-500 font-bold uppercase tracking-widest leading-none">Main Balance</p>
+          <p className="text-xs font-mono font-extrabold text-amber-400 flex items-center gap-1 justify-end mt-1.5 leading-none">
+            <span>{parseFloat(data.totalCoin || 0).toFixed(2)}</span> <span className="text-slate-500 font-normal text-[10px]">COIN</span>
           </p>
         </div>
       </div>
 
-      {/* Main Layout Command Center */}
-      <div className="max-w-xl mx-auto space-y-6">
+      {/* মেইন কমান্ড সেন্টার */}
+      <div className="max-w-xl mx-auto space-y-4.5">
         
-        {/* CENTER MODULE: GIANT NEON NETWORK HUB VISUAL */}
-        <div className="bg-gradient-to-b from-[#0b140d] to-[#060a07] border border-lime-950/40 p-6 rounded-[32px] relative overflow-hidden shadow-2xl flex flex-col justify-between min-h-[360px]">
+        {/* 🔮 মেইন মডিউল: নেটওয়ার্ক হাব ডিসপ্লে */}
+        <div className="bg-[#111827]/60 backdrop-blur-2xl border border-slate-800/80 p-6 rounded-[24px] relative overflow-hidden shadow-2xl flex flex-col justify-between min-h-[340px]">
           
+          <div className="absolute -top-12 -right-12 w-32 h-32 bg-amber-500/5 rounded-full blur-3xl pointer-events-none"></div>
+
           <div className="flex justify-between items-center z-10">
-            <div className="flex items-center gap-2 bg-[#060a07] border border-lime-950/80 px-3 py-1.5 rounded-xl">
-              <span className="text-xs text-lime-500 animate-pulse">🧬</span>
-              <span className="text-[10px] font-black tracking-widest text-zinc-400 uppercase">Affiliate Core</span>
+            <div className="flex items-center gap-1.5 bg-slate-950/80 border border-slate-800/60 px-3 py-1.5 rounded-xl">
+              <span className="text-xs text-amber-500 animate-pulse">🧬</span>
+              <span className="text-[10px] font-bold tracking-widest text-slate-300 uppercase">Affiliate Core</span>
             </div>
-            <div className="bg-[#060a07] border border-lime-950/80 px-3 py-1.5 rounded-xl text-right">
-              <p className="text-[9px] text-zinc-500 font-bold uppercase tracking-wider">Net Status</p>
-              <p className="text-xs font-mono font-black text-lime-400 flex items-center gap-1.5 justify-end">
-                <span className="h-1.5 w-1.5 rounded-full bg-lime-400 animate-pulse inline-block"></span> Secure
+            <div className="bg-slate-950/80 border border-slate-800/60 px-3 py-1.5 rounded-xl text-right">
+              <p className="text-xs font-mono font-bold text-emerald-400 flex items-center gap-1.5 justify-end">
+                <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse inline-block"></span> Secure
               </p>
             </div>
           </div>
 
-          {/* THE GIANT INTERACTIVE NEON HUB */}
-          <div className="relative flex justify-center items-center my-auto py-2">
-            <div className="absolute h-60 w-60 bg-lime-500/10 rounded-full blur-3xl animate-pulse"></div>
+          {/* ইন্টারঅ্যাক্টিভ সেন্ট্রাল নেটওয়ার্ক কোর */}
+          <div className="relative flex justify-center items-center my-auto py-4">
+            <div className="absolute h-48 w-48 bg-amber-500/[0.03] rounded-full blur-3xl animate-pulse"></div>
 
-            <div className="relative h-44 w-44 rounded-full bg-[#060a07] border-[6px] border-lime-500 shadow-[0_0_40px_rgba(132,204,22,0.25)] flex items-center justify-center p-3 group transition-transform hover:scale-[1.02]">
-              <div className="h-full w-full rounded-full bg-gradient-to-tr from-lime-500/10 to-lime-500/20 border border-lime-500 flex flex-col items-center justify-center gap-1">
-                <span className="text-5xl font-black text-lime-400 tracking-tighter filter drop-shadow-[0_0_10px_rgba(132,204,22,0.6)]">
+            <div className="relative h-36 w-36 rounded-full bg-slate-950 border-[4px] border-amber-500 shadow-[0_0_30px_rgba(245,158,11,0.15)] flex items-center justify-center p-3 group transition-transform duration-300 hover:scale-[1.02]">
+              <div className="h-full w-full rounded-full bg-gradient-to-tr from-amber-500/5 to-amber-500/10 border border-amber-500/20 flex flex-col items-center justify-center">
+                <span className="text-4xl font-black text-amber-400 tracking-tighter filter drop-shadow-[0_0_6px_rgba(245,158,11,0.5)]">
                   {data.totalReferrals}
                 </span>
-                <span className="text-[9px] font-black tracking-widest text-zinc-300 uppercase leading-none mt-0.5 group-hover:text-lime-400 transition-colors">
-                  Linked Nodes
+                <span className="text-[9px] font-bold tracking-widest text-slate-300 uppercase mt-1">
+                  Linked Users
                 </span>
               </div>
             </div>
           </div>
 
-          <div className="text-center z-10 mb-4 bg-zinc-950/60 p-3 rounded-xl border border-lime-950/80">
-            <h2 className="text-3xl font-black text-white font-mono tracking-tight flex items-center justify-center gap-2">
-              <span className="text-amber-400 font-sans">🪙</span> {data.referralEarnings.toFixed(2)}
+          <div className="text-center z-10 bg-slate-950/80 p-3 rounded-xl border border-slate-800/60">
+            <h2 className="text-2xl font-black text-white font-mono tracking-tight flex items-center justify-center gap-1.5">
+              <span className="text-amber-500 font-sans text-xl">🪙</span> {parseFloat(data.referralEarnings || 0).toFixed(2)}
             </h2>
-            <p className="text-[10px] text-zinc-500 font-bold uppercase tracking-wider mt-1.5 leading-relaxed">
-              Consolidated Net Ledger • <span className="text-lime-400">+500 D Tokens</span> / node sync
+            <p className="text-[10px] text-slate-400 font-semibold uppercase tracking-wider mt-1">
+              Consolidated Net Ledger • <span className="text-amber-500">+500 COIN</span> / user sync
             </p>
           </div>
         </div>
 
-        {/* REFINERY BOOST LINK BOX AREA */}
-        <div className="bg-gradient-to-b from-[#0b140d] to-[#060a07] border border-lime-950/40 p-6 rounded-3xl shadow-xl flex flex-col justify-between">
+        {/* 🔗 ইনভিটেশন লিঙ্ক গেটওয়ে এরিয়া */}
+        <div className="bg-[#111827]/60 backdrop-blur-2xl border border-slate-800/80 p-5 sm:p-6 rounded-2xl shadow-2xl">
           <div>
-            <h3 className="text-xs font-black tracking-widest uppercase text-zinc-300 mb-1">Invitation Subsystem Gateway</h3>
-            <p className="text-[11px] text-zinc-500 mb-5 leading-relaxed">Inject unique profile parameters into network routing. Attaching nodes auto-manifest 100 bonus tokens.</p>
+            <h3 className="text-xs font-bold tracking-widest uppercase text-slate-200 flex items-center gap-1.5 mb-1">
+              <ShieldCheck className="w-3.5 h-3.5 text-amber-500" />
+              <span>Invitation Subsystem Gateway</span>
+            </h3>
+            <p className="text-[11px] text-slate-400 mb-4 leading-relaxed">
+              Inject unique parameters into routing network. Attaching sub-users auto-manifest <span className="text-amber-500 font-medium">100 bonus tokens</span>.
+            </p>
           </div>
 
-          <div className="bg-[#060a07] border border-lime-950 h-2 rounded-full overflow-hidden p-0.5 mb-5 relative group">
-            <div className="bg-gradient-to-r from-lime-600 to-lime-400 h-full rounded-full shadow-[0_0_8px_rgba(132,204,22,0.4)] relative w-full"></div>
+          <div className="bg-slate-950 border border-slate-800 h-1.5 rounded-full overflow-hidden p-[1px] mb-4">
+            <div className="bg-gradient-to-r from-amber-500 to-orange-500 h-full rounded-full shadow-[0_0_6px_rgba(245,158,11,0.3)] w-full"></div>
           </div>
 
-          <div className="flex flex-col sm:flex-row gap-3">
+          <div className="flex flex-col sm:flex-row gap-2">
             <input
               type="text"
               readOnly
-              value={data.referralLink || "Compiling unique routing parameters..."}
-              className="flex-1 bg-[#09110b] border border-lime-950/80 rounded-xl p-4 text-[11px] text-lime-400 font-mono tracking-tighter focus:outline-none select-all shadow-inner"
+              value={data.referralLink || "Compiling routing configuration parameters..."}
+              className="flex-1 bg-slate-950 border border-slate-800/80 rounded-xl p-3 text-xs text-amber-500 font-mono tracking-tighter focus:outline-none select-all shadow-inner"
             />
             <button
               onClick={handleCopy}
               disabled={!data.referralLink}
-              className={`sm:w-36 p-4 rounded-xl text-xs font-black tracking-widest uppercase transition-all duration-300 active:scale-95 shadow-lg border ${
+              className={`sm:w-36 p-3 rounded-xl text-xs font-bold tracking-wider uppercase transition-all duration-200 active:scale-[0.98] border cursor-pointer flex items-center justify-center gap-1.5 ${
                 copied 
-                  ? "bg-lime-500 text-[#070d08] border-lime-400 shadow-lime-500/20" 
-                  : "bg-gradient-to-r from-cyan-600 to-lime-500 text-black border-lime-400 shadow-lime-500/10 hover:shadow-lime-500/20"
+                  ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/30" 
+                  : "bg-gradient-to-r from-amber-500 to-orange-500 text-slate-950 border-amber-400/20 font-bold hover:opacity-95"
               }`}
             >
-              {copied ? "Link Copied ✓" : "Copy Node Link"}
+              {copied ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
+              <span>{copied ? "Copied" : "Copy Link"}</span>
             </button>
           </div>
         </div>
 
-        {/* STORAGE PIPELINE: REFERRED FRIENDS LEDGER */}
-        <div className="bg-gradient-to-b from-[#0b140d] to-[#060a07] border border-lime-950/40 p-6 rounded-3xl shadow-xl flex flex-col justify-between">
-          <div className="mb-5 flex justify-between items-center">
-            <div>
-              <div className="flex items-center gap-2 mb-1">
-                <span className="text-lg">🏭</span>
-                <h3 className="text-xs font-black tracking-widest text-zinc-300 uppercase">Surface Refinery Nodes</h3>
+        {/* 📊 রেফারেল হিস্ট্রি টেবিল: রিয়েল ডেটাবেজ ফিল্ড ম্যাপিং */}
+        <div className="bg-[#111827]/60 backdrop-blur-2xl border border-slate-800/80 p-5 sm:p-6 rounded-2xl shadow-2xl">
+          <div className="mb-4 flex justify-between items-center">
+            <div className="flex items-center gap-2">
+              <div className="p-1.5 bg-amber-500/10 border border-amber-500/20 text-amber-500 rounded-lg">
+                <Users className="w-3.5 h-3.5" />
               </div>
-              <p className="text-[11px] text-zinc-500 leading-relaxed">Secured browser data matrix rows.</p>
+              <div>
+                <h3 className="text-xs font-bold tracking-widest text-slate-200 uppercase">Surface Refinery Users</h3>
+                <p className="text-[10px] text-slate-400 mt-0.5">Secured data ledger clusters.</p>
+              </div>
             </div>
-            <div className="text-right bg-[#09110b] border border-lime-950 px-3 py-1.5 rounded-xl font-mono">
-              <p className="text-[9px] text-zinc-600 font-bold uppercase tracking-widest leading-none">Net Value</p>
-              <p className="text-sm font-black text-lime-400 leading-none mt-1.5 flex items-center gap-1 justify-end">
-                <span className="text-[10px] font-normal text-zinc-500">USD</span> ${data.totalDollar.toFixed(2)} 
+            <div className="text-right bg-slate-950/80 border border-slate-800/60 px-3 py-1 rounded-xl font-mono">
+              <p className="text-[8px] text-slate-500 font-bold uppercase tracking-widest leading-none">Net Value</p>
+              <p className="text-xs font-extrabold text-emerald-400 leading-none mt-1 flex items-center gap-0.5 justify-end">
+                <span className="text-[9px] font-normal text-slate-500">USD</span> ${parseFloat(data.totalDollar || 0).toFixed(2)} 
               </p>
             </div>
           </div>
           
           <div className="overflow-x-auto custom-scrollbar pt-1">
             {data.referredFriends.length === 0 ? (
-              <div className="text-center py-10 bg-zinc-950/60 rounded-xl border border-lime-950/60">
-                <span className="text-2xl block mb-2 opacity-30">👤</span>
-                <p className="text-[10px] text-zinc-600 font-bold uppercase tracking-wider">No sub-nodes linked yet.</p>
-                <p className="text-[9px] text-zinc-700 mt-1">Spread your link to populate data rows.</p>
+              <div className="text-center py-8 bg-slate-950/40 rounded-xl border border-slate-800/50">
+                <span className="text-xl block mb-1 opacity-40">👤</span>
+                <p className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">No sub-users linked yet.</p>
+                <p className="text-[9px] text-slate-600 mt-0.5">Spread your gateway parameters to populate rows.</p>
               </div>
             ) : (
-              <table className="w-full text-left text-[11px] text-zinc-300 border-collapse">
-                <thead className="bg-[#09110b] border-b border-lime-950/60">
+              <table className="w-full text-left text-[11px] text-slate-300 border-collapse min-w-[400px]">
+                <thead className="bg-slate-950/80 border-b border-slate-800/80">
                   <tr>
-                    <th className="px-4 py-3 font-bold uppercase tracking-widest text-zinc-400">Node ID</th>
-                    <th className="px-4 py-3 font-bold uppercase tracking-widest text-zinc-400">Username</th>
-                    <th className="px-4 py-3 font-bold uppercase tracking-widest text-zinc-400">Your Cargo</th>
-                    <th className="px-4 py-3 font-bold uppercase tracking-widest text-zinc-400">Node cargo</th>
-                    <th className="px-4 py-3 font-bold uppercase tracking-widest text-zinc-400">Timestamp</th>
+                    <th className="px-3 py-2.5 font-bold uppercase tracking-wider text-slate-400 text-[10px]">User ID</th>
+                    <th className="px-3 py-2.5 font-bold uppercase tracking-wider text-slate-400 text-[10px]">Username</th>
+                    <th className="px-3 py-2.5 font-bold uppercase tracking-wider text-slate-400 text-[10px]">Your Yield</th>
+                    <th className="px-3 py-2.5 font-bold uppercase tracking-wider text-slate-400 text-[10px]">User Yield</th>
+                    <th className="px-3 py-2.5 font-bold uppercase tracking-wider text-slate-400 text-[10px]">Timestamp</th>
                   </tr>
                 </thead>
                 <tbody>
                   {data.referredFriends.map((friend) => (
-                    <tr key={friend.referred_id} className="border-b border-lime-950/30 hover:bg-[#121b15]/40 transition-colors duration-150">
-                      <td className="px-4 py-3 font-mono text-xs text-lime-400 font-bold">#{friend.referred_id}</td>
-                      <td className="px-4 py-3 font-medium text-slate-100">{friend.referred_username}</td>
-                      <td className="px-4 py-3 text-amber-400 font-bold">+{friend.referrer_bonus_coins} D</td>
-                      <td className="px-4 py-3 text-zinc-400">+{friend.referred_bonus_coins} D</td>
-                      <td className="px-4 py-3 font-mono text-zinc-500">
+                    <tr key={friend.referral_id} className="border-b border-slate-800/40 hover:bg-slate-900/40 transition-colors">
+                      {/* 🤝 ফিক্সড: আপনার referrals টেবিল অনুযায়ী জেনারেট করা referred_id কলাম রিড */}
+                      <td className="px-3 py-3 font-mono text-xs text-amber-500 font-bold">#{friend.referred_id}</td>
+                      <td className="px-3 py-3 font-semibold text-slate-200">{friend.referred_username}</td>
+                      <td className="px-3 py-3 text-amber-400 font-bold">+{friend.referrer_bonus_coins} D</td>
+                      <td className="px-3 py-3 text-slate-400">+{friend.referred_bonus_coins} D</td>
+                      <td className="px-3 py-3 font-mono text-slate-500 text-[10px]">
                         {new Date(friend.created_at).toLocaleDateString("en-US", {
                           month: "short",
                           day: "numeric",
