@@ -94,7 +94,7 @@ export function AuthProvider({ children }) {
   // ❌ লগআউট মেথড
   const logout = async () => {
     try {
-      await fetch('/api/auth/signout', { method: 'POST' });
+      await fetch('/api/auth/logout', { method: 'POST' });
       toast.success("Logged out from secure node.");
     } catch (error) {
       console.error("Signout API error:", error);
