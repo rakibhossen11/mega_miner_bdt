@@ -8,7 +8,7 @@ import { getSession } from "@/app/lib/auth"; // 🚀 লাইভ সেশন �
 export async function GET(request) {
   try {
     const userSessionData = await getSession();
-    console.log('User-Profile Sync Active:', userSessionData);
+    // console.log('User-Profile Sync Active:', userSessionData);
 
     if (!userSessionData) {
       return NextResponse.json({ 
