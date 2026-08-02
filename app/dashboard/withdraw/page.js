@@ -1,8 +1,18 @@
 "use client";
 import { useState, useEffect } from "react";
 import { useSelector, useDispatch } from "react-redux";
-// 🎯 রিডাক্স অ্যাকশনসমূহ ইম্পোর্ট
+import toast from "react-hot-toast"; // 🚀 প্রফেশনাল টোস্ট নোটিফিকেশন
 import { fetchWalletData, updateBalances } from "@/app/store/walletSlice"; 
+import { 
+  Coins, 
+  DollarSign, 
+  ArrowRightLeft, 
+  Send, 
+  History, 
+  Smartphone, 
+  TrendingUp,
+  ShieldCheck
+} from "lucide-react"; // 🚀 সাইবার থিম আইকনসমূহ
 
 export default function WithdrawPage() {
   const dispatch = useDispatch();
@@ -20,16 +30,16 @@ export default function WithdrawPage() {
   const [accountNumber, setAccountNumber] = useState("");
   const [withdrawAmount, setWithdrawAmount] = useState("");
 
-  // Transaction History
+  // Transaction History (লোকাল মক ডাটা)
   const [history, setHistory] = useState([
-    { id: 1, type: "Convert", amount: "$25.00", status: "Completed", date: "2026-06-12" },
-    { id: 2, type: "Withdraw (bKash)", amount: "$10.00", status: "Pending", date: "2026-06-15" },
+    // { id: 1, type: "Convert", amount: "$25.00", status: "Completed", date: "2026-06-12" },
+    // { id: 2, type: "Withdraw (bKash)", amount: "$10.00", status: "Pending", date: "2026-06-15" },
   ]);
 
-  // 💱 Conversion System Config
-  const CONVERSION_RATE = 100; 
+  // 💱 Conversion System Config (১০০০ কয়েন = ১ ডলার ব্যাকএন্ড সিঙ্ক)
+  const CONVERSION_RATE = 1000; 
 
-  // ইউজার ইনপুট দেওয়া মাত্রই পয়েন্টের আগের পূর্ণসংখ্যা নিয়ে ডলার এস্টিমেট করবে
+  // ইউজার ইনপুট দেওয়া মাত্রই লাইভ এস্টিমেট ক্যালকুলেশন
   const integerConvertInput = convertInput ? Math.floor(parseFloat(convertInput)) : 0;
   const estimatedDollar = integerConvertInput > 0 ? (integerConvertInput / CONVERSION_RATE) : 0;
 
@@ -38,257 +48,274 @@ export default function WithdrawPage() {
     dispatch(fetchWalletData());
   }, [dispatch]);
 
-  // Converter Handler (Coin to Dollar)
+  // ==========================================
+  // 💱 ACTION 1: COIN TO USD CONVERSION
+  // ==========================================
   const handleConvert = async (e) => {
     e.preventDefault();
     
-    // ১. দশমিকের পরের অংশ বাদ দিয়ে শুধুমাত্র পূর্ণসংখ্যা (Integer) নেওয়া হলো
     const coinsToConvert = Math.floor(parseFloat(convertInput));
-    // console.log(coinsToConvert);
 
     if (!coinsToConvert || coinsToConvert <= 0) {
-      alert("Please enter a valid amount of coins.");
+      toast.error("Please enter a valid amount of coins.");
       return;
     }
 
-    // ২. মিনিমাম ১০০০ কয়েন কনভার্ট করার কন্ডিশন চেকিং
     if (coinsToConvert < 1000) {
-      alert("Minimum conversion limit is 1,000 Coins!");
+      toast.error("Minimum conversion limit is 1,000 Coins!");
       return;
     }
 
-    // ৩. শুধুমাত্র পয়েন্টের আগের অ্যাভেইলেবল কয়েনের সাথে ইনপুট চেক করা
     const availableIntegerCoins = Math.floor(totalCoin);
-    
     if (coinsToConvert > availableIntegerCoins) {
-      alert(`Insufficient balance! You can only convert the whole number part of your coins (Max: ${availableIntegerCoins} Coins).`);
+      toast.error(`Insufficient balance! Max whole coins: ${availableIntegerCoins}`);
       return;
     }
 
-    const earnedDollar = coinsToConvert / CONVERSION_RATE;
-    // console.log(earnedDollar);
+    const loadingToast = toast.loading("Processing ledger asset conversion...");
     setIsLoading(true);
 
     try {
-      // 📡 রিডাক্সের মাধ্যমে কানেক্ট করার জন্য ব্যাকএন্ড এপিআই কল
-      const res = await fetch("/api/wallet/convert", {
+      // 🚀 ফিক্সড পাথ: ব্যাকএন্ড কনভার্ট রাউটের সাথে ম্যাচড
+      const res = await fetch("/api/dashboard/convert", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ 
-          coinsToMinus: coinsToConvert, 
-          dollarsToPlus: earnedDollar 
-        })
+        body: JSON.stringify({ coinsToMinus: coinsToConvert })
       });
 
       const json = await res.json();
 
+      toast.dismiss(loadingToast);
+
       if (json.success) {
-        // ৪. ডাটাবেজে আপডেট সফল হলে রিডাক্স স্টোরে সরাসরি লাইভ ভ্যালু সিঙ্ক
+        // রিডাক্স গ্লোবাল ব্যালেন্স সিঙ্ক
         dispatch(updateBalances({
-          newTotalCoin: json.newTotalCoin, // ব্যাকএন্ড থেকে আসা নিখুঁত ব্যালেন্স
+          newTotalCoin: json.newTotalCoin,
           newTotalDollar: json.newTotalDollar
         }));
         setConvertInput("");
-        alert(`Success! Converted ${coinsToConvert.toLocaleString()} Coins to $${earnedDollar.toFixed(2)} USD successfully.`);
+        toast.success(`Converted ${coinsToConvert.toLocaleString()} Coins into $${(coinsToConvert / CONVERSION_RATE).toFixed(2)} USD!`);
       } else {
-        alert(json.message || "Conversion rejected by database engine.");
+        toast.error(json.message || "Conversion rejected.");
       }
     } catch (err) {
+      toast.dismiss(loadingToast);
       console.error("Conversion failed:", err);
-      alert("Server pipeline error.");
+      toast.error("Server pipeline error during transaction.");
     } finally {
       setIsLoading(false);
     }
   };
 
-  // Withdraw Handler
+  // ==========================================
+  // 💸 ACTION 2: PAYOUT WITHDRAWAL
+  // ==========================================
   const handleWithdraw = async (e) => {
     e.preventDefault();
     const amount = parseFloat(withdrawAmount);
 
     if (!accountNumber || !amount || amount <= 0) {
-      alert("Please fill up all fields accurately.");
+      toast.error("Please fill up all fields accurately.");
       return;
     }
     if (amount < 5) {
-      alert("Minimum withdrawal limit is $5.00 USD!");
+      toast.error("Minimum withdrawal limit is $5.00 USD!");
       return;
     }
     if (amount > totalDollar) {
-      alert("Insufficient USD balance in your main wallet!");
+      toast.error("Insufficient USD balance in your wallet!");
       return;
     }
 
-    try {
-      setHistory(prev => [
-        { id: Date.now(), type: `Withdraw (${paymentMethod})`, amount: `$${amount.toFixed(2)}`, status: "Pending", date: new Date().toISOString().split('T')[0] },
-        ...prev
-      ]);
+    // উইথড্রাল রিকোয়েস্ট হিস্ট্রি পুশ (মক ট্র্যাকিং)
+    setHistory(prev => [
+      { id: Date.now(), type: `Withdraw (${paymentMethod})`, amount: `$${amount.toFixed(2)}`, status: "Pending", date: new Date().toISOString().split('T')[0] },
+      ...prev
+    ]);
 
-      setWithdrawAmount("");
-      setAccountNumber("");
-      alert("Your withdrawal request has been sent.");
-      dispatch(fetchWalletData());
-    } catch (err) {
-      console.error("Withdrawal failed:", err);
-    }
+    setWithdrawAmount("");
+    setAccountNumber("");
+    toast.success("🚀 Payout request fired to pipeline! Pending review.");
+    dispatch(fetchWalletData());
   };
 
   return (
-    <div className="min-h-screen bg-[#060d08] text-white p-4 pb-24 md:pb-6 font-sans antialiased selection:bg-lime-500/30">
+    <div className="min-h-screen bg-[#090d16] text-white p-4 pb-24 md:pb-6 font-sans antialiased selection:bg-amber-500/30">
       
-      {/* 🚀 Top Cmd Header */}
-      <div className="max-w-xl mx-auto mb-6 flex justify-between items-center bg-[#0d160f]/60 border border-lime-950/40 p-4 rounded-2xl backdrop-blur-md shadow-xl">
-        <div>
-          <h1 className="text-xl font-black bg-gradient-to-r from-lime-400 to-cyan-400 bg-clip-text text-transparent uppercase tracking-wider">
-            Financial Core
-          </h1>
-          <p className="text-zinc-500 text-[11px] font-medium">Convert assets and request secure fiat/crypto gateway payouts.</p>
+      {/* 🚀 টপ হেডার কমান্ড প্যানেল */}
+      <div className="max-w-xl mx-auto mb-5 flex justify-between items-center bg-[#111827]/60 border border-slate-800/80 p-4 rounded-2xl backdrop-blur-2xl shadow-2xl">
+        <div className="flex items-center gap-3">
+          <div className="p-2 bg-amber-500/10 rounded-xl border border-amber-500/20 text-amber-500">
+            <ArrowRightLeft className="w-4 h-4" />
+          </div>
+          <div>
+            <h1 className="text-base font-extrabold text-white uppercase tracking-wider">
+              Financial Core
+            </h1>
+            <p className="text-slate-400 text-[10px] font-medium">Convert assets and request secure fiat gateway payouts.</p>
+          </div>
         </div>
-        <div className="flex items-center gap-2 bg-[#060a07] border border-lime-950/80 px-3 py-1.5 rounded-xl">
-          <span className="h-1.5 w-1.5 rounded-full bg-lime-400 animate-pulse"></span>
-          <span className="text-[10px] font-black tracking-widest text-lime-400 uppercase">Gateway Live</span>
+        <div className="flex items-center gap-1.5 bg-slate-950/80 border border-slate-800/60 px-3 py-1.5 rounded-xl">
+          <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+          <span className="text-[9px] font-bold tracking-widest text-emerald-400 uppercase">Gateway Live</span>
         </div>
       </div>
 
-      {/* Main Layout Container */}
-      <div className="max-w-xl mx-auto space-y-6">
+      {/* মেইন লেআউট মডিউল */}
+      <div className="max-w-xl mx-auto space-y-4.5">
         
-        {/* 📊 Live Balance Matrix Preview Grid */}
-        <div className="grid grid-cols-2 gap-4">
-          {/* Total Live Coins Card */}
-          <div className="bg-gradient-to-b from-[#0b140d] to-[#060a07] border border-lime-950/40 p-4 rounded-2xl relative overflow-hidden shadow-xl">
-            <p className="text-zinc-500 text-[10px] font-bold uppercase tracking-wider mb-1">Total Mined Coins</p>
-            <h2 className="text-xl font-black text-amber-400 font-mono tracking-tight">
-              {totalCoin.toFixed(8)} <span className="text-[10px] font-normal text-zinc-500">COIN</span>
+        {/* 📊 লাইভ মেমোরি ব্যালেন্স ম্যাট্রিক্স গ্রিড */}
+        <div className="grid grid-cols-2 gap-3.5">
+          {/* টোটাল কয়েন কার্ড */}
+          <div className="bg-[#111827]/40 backdrop-blur-xl border border-slate-800/50 p-4 rounded-xl relative overflow-hidden shadow-xl">
+            <p className="text-slate-500 text-[9px] font-bold uppercase tracking-wider mb-1 flex items-center gap-1">
+              <Coins className="w-3 h-3 text-amber-500" />
+              <span>Total Mined Coins</span>
+            </p>
+            <h2 className="text-lg font-black text-amber-400 font-mono tracking-tight">
+              {totalCoin.toFixed(8)}
             </h2>
-            <span className="text-[9px] text-zinc-600 block mt-1">Convertible: {Math.floor(totalCoin).toLocaleString()} COIN</span>
-            <div className="absolute right-2 bottom-1 text-3xl opacity-[0.03] pointer-events-none">🪙</div>
+            <span className="text-[9px] text-slate-500 block mt-1 font-medium">Convertible: {Math.floor(totalCoin).toLocaleString()}</span>
           </div>
           
-          {/* Total USD Balance Card */}
-          <div className="bg-gradient-to-b from-[#0b140d] to-[#060a07] border border-lime-950/40 p-4 rounded-2xl relative overflow-hidden shadow-xl">
-            <p className="text-zinc-500 text-[10px] font-bold uppercase tracking-wider mb-1">Available USD Balance</p>
-            <h2 className="text-xl font-black text-lime-400 font-mono tracking-tight">${totalDollar.toFixed(2)}</h2>
-            <span className="text-[9px] text-zinc-600 block mt-1">Min Payout Level: $5.00</span>
-            <div className="absolute right-2 bottom-1 text-3xl opacity-[0.03] pointer-events-none">💳</div>
+          {/* টোটাল ইউএসডি ব্যালেন্স কার্ড */}
+          <div className="bg-[#111827]/40 backdrop-blur-xl border border-slate-800/50 p-4 rounded-xl relative overflow-hidden shadow-xl">
+            <p className="text-slate-500 text-[9px] font-bold uppercase tracking-wider mb-1 flex items-center gap-1">
+              <DollarSign className="w-3 h-3 text-emerald-500" />
+              <span>Available USD</span>
+            </p>
+            <h2 className="text-lg font-black text-emerald-400 font-mono tracking-tight">${totalDollar.toFixed(2)}</h2>
+            <span className="text-[9px] text-slate-500 block mt-1 font-medium">Min Payout Level: $5.00</span>
           </div>
         </div>
 
-        {/* 🔄 MODULE 1: COIN TO USD CONVERTER */}
-        <div className="bg-gradient-to-b from-[#0b140d] to-[#060a07] border border-lime-950/40 p-5 rounded-3xl shadow-xl">
-          <div className="flex items-center gap-2 mb-4 border-b border-lime-950/30 pb-3">
-            <span className="text-base">🔄</span>
-            <h3 className="text-xs font-black tracking-widest text-zinc-300 uppercase">Coin Converter Subsystem</h3>
+        {/* 🔄 মডিউল ১: কয়েন টু ইউএসডি কনভার্টার সাবসিস্টেম */}
+        <div className="bg-[#111827]/60 backdrop-blur-2xl border border-slate-800/80 p-5 rounded-2xl shadow-2xl">
+          <div className="flex items-center gap-2 mb-4 border-b border-slate-800/40 pb-3">
+            <ArrowRightLeft className="w-4 h-4 text-amber-500" />
+            <h3 className="text-xs font-bold tracking-widest text-slate-200 uppercase">Coin Converter Subsystem</h3>
           </div>
           
           <form onSubmit={handleConvert} className="space-y-4">
             <div>
-              <label className="text-[11px] font-bold tracking-wide text-zinc-500 uppercase block mb-2">Coins Volume to Convert (Integer Only)</label>
+              <label className="text-[10px] font-bold tracking-wide text-slate-400 uppercase block mb-2">Coins Volume to Convert (Integer Only)</label>
               <input
                 type="number"
-                placeholder="Minimum 1,000 (No decimals)"
+                placeholder="Minimum 1,000 whole coins"
                 value={convertInput}
                 disabled={isLoading}
                 onChange={(e) => setConvertInput(e.target.value)}
-                className="w-full bg-[#09110b] border border-lime-950/80 rounded-xl p-3.5 text-xs text-lime-400 font-mono tracking-wide focus:outline-none focus:border-amber-500/50 shadow-inner"
+                className="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-xs text-amber-400 font-mono tracking-wide focus:outline-none focus:border-amber-500/50 shadow-inner"
               />
             </div>
             
             {estimatedDollar > 0 && (
-              <div className="p-3 bg-lime-500/5 border border-lime-500/10 rounded-xl animate-fade-in">
-                <p className="text-[11px] text-lime-400 font-medium flex items-center gap-1.5">
-                  ✨ Est. Value Output: <span className="font-mono font-black">${estimatedDollar.toFixed(2)} USD</span>
+              <div className="p-3 bg-amber-500/5 border border-amber-500/10 rounded-xl">
+                <p className="text-[11px] text-amber-400 font-semibold flex items-center gap-1.5">
+                  <TrendingUp className="w-3.5 h-3.5 animate-pulse" />
+                  <span>Est. Value Output: <span className="font-mono font-black">${estimatedDollar.toFixed(2)} USD</span></span>
                 </p>
-                <span className="text-[9px] text-zinc-500 block mt-0.5">* Converting exactly {integerConvertInput.toLocaleString()} whole coins.</span>
+                <span className="text-[9px] text-slate-500 block mt-0.5">* System processing exactly {integerConvertInput.toLocaleString()} whole tokens.</span>
               </div>
             )}
             
             <button
               type="submit"
               disabled={isLoading}
-              className="w-full py-3.5 bg-gradient-to-r from-amber-500 to-orange-500 text-black text-xs font-black tracking-widest uppercase rounded-xl transition-all active:scale-95 shadow-lg shadow-amber-500/10 border border-amber-400 disabled:opacity-50"
+              className="w-full py-3 bg-gradient-to-r from-amber-500 to-orange-500 text-slate-950 text-xs font-black tracking-widest uppercase rounded-xl transition-all active:scale-[0.98] shadow-lg shadow-orange-500/10 border-t border-amber-400/20 disabled:opacity-50 cursor-pointer"
             >
-              {isLoading ? "Processing..." : "Convert to USD Cargo"}
+              {isLoading ? "Syncing Ledger..." : "Convert to USD Balance"}
             </button>
           </form>
         </div>
 
-        {/* 💸 MODULE 2: SECURED WITHDRAW FORM */}
-        <div className="bg-gradient-to-b from-[#0b140d] to-[#060a07] border border-lime-950/40 p-5 rounded-3xl shadow-xl">
-          <div className="flex items-center gap-2 mb-4 border-b border-lime-950/30 pb-3">
-            <span className="text-base">💸</span>
-            <h3 className="text-xs font-black tracking-widest text-zinc-300 uppercase">Secure USD Withdrawal</h3>
+        {/* 💸 মডিউল ২: সিকিউরড গেটওয়ে উইথড্রাল ফর্ম */}
+        <div className="bg-[#111827]/60 backdrop-blur-2xl border border-slate-800/80 p-5 rounded-2xl shadow-2xl">
+          <div className="flex items-center gap-2 mb-4 border-b border-slate-800/40 pb-3">
+            <Send className="w-4 h-4 text-cyan-500" />
+            <h3 className="text-xs font-bold tracking-widest text-slate-200 uppercase">Secure USD Withdrawal Pipeline</h3>
           </div>
           
           <form onSubmit={handleWithdraw} className="space-y-4">
             <div>
-              <label className="text-[11px] font-bold tracking-wide text-zinc-500 uppercase block mb-2">Select Payout Node Gateway</label>
-              <select
-                value={paymentMethod}
-                onChange={(e) => setPaymentMethod(e.target.value)}
-                className="w-full bg-[#09110b] border border-lime-950/80 rounded-xl p-3.5 text-xs text-zinc-300 font-bold focus:outline-none focus:border-lime-500/50 appearance-none cursor-pointer"
-              >
-                <option value="bKash" className="bg-[#060a07]">bKash (Local Mobile Wallet)</option>
-                <option value="Nagad" className="bg-[#060a07]">Nagad (Local Mobile Wallet)</option>
-              </select>
+              <label className="text-[10px] font-bold tracking-wide text-slate-400 uppercase block mb-2">Select Payout Node Gateway</label>
+              <div className="relative">
+                <select
+                  value={paymentMethod}
+                  onChange={(e) => setPaymentMethod(e.target.value)}
+                  className="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-xs text-slate-300 font-bold focus:outline-none focus:border-cyan-500/50 appearance-none cursor-pointer"
+                >
+                  <option value="bKash">bKash (Mobile Fiat Wallet)</option>
+                  <option value="Nagad">Nagad (Mobile Fiat Wallet)</option>
+                </select>
+              </div>
             </div>
             
             <div>
-              <label className="text-[11px] font-bold tracking-wide text-zinc-500 uppercase block mb-2">Terminal Account Number</label>
-              <input
-                type="text"
-                placeholder="01XXXXXXXXX"
-                value={accountNumber}
-                onChange={(e) => setAccountNumber(e.target.value)}
-                className="w-full bg-[#09110b] border border-lime-950/80 rounded-xl p-3.5 text-xs text-lime-400 font-mono tracking-widest focus:outline-none focus:border-lime-500/50 shadow-inner"
-              />
+              <label className="text-[10px] font-bold tracking-wide text-slate-400 uppercase block mb-2">Terminal Account Number</label>
+              <div className="relative">
+                <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-slate-600">
+                  <Smartphone className="w-3.5 h-3.5" />
+                </span>
+                <input
+                  type="text"
+                  placeholder="01XXXXXXXXX"
+                  value={accountNumber}
+                  onChange={(e) => setAccountNumber(e.target.value)}
+                  className="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 pl-9 text-xs text-cyan-400 font-mono tracking-widest focus:outline-none focus:border-cyan-500/50 shadow-inner"
+                />
+              </div>
             </div>
             
             <div>
-              <label className="text-[11px] font-bold tracking-wide text-zinc-500 uppercase block mb-2">Payout Volume (USD)</label>
-              <input
-                type="number"
-                placeholder="Minimum 5"
-                value={withdrawAmount}
-                onChange={(e) => setWithdrawAmount(e.target.value)}
-                className="w-full bg-[#09110b] border border-lime-950/80 rounded-xl p-3.5 text-xs text-lime-400 font-mono tracking-wide focus:outline-none focus:border-lime-500/50 shadow-inner"
-              />
+              <label className="text-[10px] font-bold tracking-wide text-slate-400 uppercase block mb-2">Payout Volume (USD)</label>
+              <div className="relative">
+                <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-slate-600">
+                  <DollarSign className="w-3.5 h-3.5" />
+                </span>
+                <input
+                  type="number"
+                  placeholder="Minimum $5.00"
+                  value={withdrawAmount}
+                  onChange={(e) => setWithdrawAmount(e.target.value)}
+                  className="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 pl-9 text-xs text-cyan-400 font-mono tracking-wide focus:outline-none focus:border-cyan-500/50 shadow-inner"
+                />
+              </div>
             </div>
             
             <button
               type="submit"
-              className="w-full py-3.5 bg-gradient-to-r from-cyan-600 to-lime-500 text-black text-xs font-black tracking-widest uppercase rounded-xl transition-all active:scale-95 shadow-lg shadow-lime-500/10 border border-lime-400"
+              className="w-full py-3 bg-gradient-to-r from-cyan-500 to-emerald-500 text-slate-950 text-xs font-black tracking-widest uppercase rounded-xl transition-all active:scale-[0.98] shadow-lg shadow-cyan-500/10 border-t border-cyan-400/20 cursor-pointer"
             >
               Fire Payout Pipeline
             </button>
           </form>
         </div>
 
-        {/* 📜 STORAGE PIPELINE: TRANSACTION HISTORY */}
-        <div className="bg-gradient-to-b from-[#0b140d] to-[#060a07] border border-lime-950/40 p-5 rounded-3xl shadow-xl">
-          <div className="mb-4 flex items-center gap-2 border-b border-lime-950/30 pb-3">
-            <span className="text-base">🏭</span>
-            <h3 className="text-xs font-black tracking-widest text-zinc-300 uppercase">Financial Node History</h3>
+        {/* 📜 লেজার হিস্ট্রি: ট্রানজেকশন ট্র্যাকিং টেবিল */}
+        <div className="bg-[#111827]/60 backdrop-blur-2xl border border-slate-800/80 p-5 rounded-2xl shadow-2xl">
+          <div className="mb-4 flex items-center gap-2 border-b border-slate-800/40 pb-3">
+            <History className="w-4 h-4 text-slate-400" />
+            <h3 className="text-xs font-bold tracking-widest text-slate-200 uppercase">Financial Node History</h3>
           </div>
           
-          <div className="overflow-x-auto pt-1">
-            <table className="w-full text-left text-[11px] text-zinc-300 border-collapse">
-              <thead className="bg-[#09110b] border-b border-lime-950/60">
+          <div className="overflow-x-auto pt-0.5">
+            <table className="w-full text-left text-[11px] text-slate-300 border-collapse min-w-[380px]">
+              <thead className="bg-slate-950 border-b border-slate-800">
                 <tr>
-                  <th className="px-4 py-3 font-bold uppercase tracking-widest text-zinc-400">Operation Type</th>
-                  <th className="px-4 py-3 font-bold uppercase tracking-widest text-zinc-400">Net Volume</th>
-                  <th className="px-4 py-3 font-bold uppercase tracking-widest text-zinc-400">Core Status</th>
-                  <th className="px-4 py-3 font-bold uppercase tracking-widest text-zinc-400">Timestamp</th>
+                  <th className="px-3 py-2 text-slate-400 font-bold uppercase tracking-wider text-[10px]">Operation Type</th>
+                  <th className="px-3 py-2 text-slate-400 font-bold uppercase tracking-wider text-[10px]">Net Volume</th>
+                  <th className="px-3 py-2 text-slate-400 font-bold uppercase tracking-wider text-[10px]">Core Status</th>
+                  <th className="px-3 py-2 text-slate-400 font-bold uppercase tracking-wider text-[10px]">Timestamp</th>
                 </tr>
               </thead>
               <tbody>
                 {history.map((item) => (
-                  <tr key={item.id} className="border-b border-lime-950/30 hover:bg-[#121b15]/40 transition-colors duration-150">
-                    <td className="px-4 py-3 font-medium text-slate-200">{item.type}</td>
-                    <td className="px-4 py-3 text-lime-400 font-mono font-bold">{item.amount}</td>
-                    <td className="px-4 py-3">
-                      <span className={`px-2.5 py-1 rounded-md text-[9px] font-black tracking-wider border ${
+                  <tr key={item.id} className="border-b border-slate-800/40 hover:bg-slate-900/30 transition-colors">
+                    <td className="px-3 py-3 font-semibold text-slate-200">{item.type}</td>
+                    <td className="px-3 py-3 text-emerald-400 font-mono font-bold">{item.amount}</td>
+                    <td className="px-3 py-3">
+                      <span className={`px-2 py-0.5 rounded text-[9px] font-extrabold tracking-wide border ${
                         item.status === "Completed" 
                           ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20" 
                           : "bg-amber-500/10 text-amber-400 border-amber-500/20"
@@ -296,7 +323,7 @@ export default function WithdrawPage() {
                         {item.status.toUpperCase()}
                       </span>
                     </td>
-                    <td className="px-4 py-3 font-mono text-zinc-500 text-[10px]">{item.date}</td>
+                    <td className="px-3 py-3 font-mono text-slate-500 text-[10px]">{item.date}</td>
                   </tr>
                 ))}
               </tbody>
@@ -308,278 +335,3 @@ export default function WithdrawPage() {
     </div>
   );
 }
-
-// "use client";
-// import { useState, useEffect } from "react";
-// import { useSelector, useDispatch } from "react-redux";
-// import { fetchWalletData } from "@/app/store/walletSlice"; // আপনার ওয়ালেট ডাটা ফেচ করার অ্যাকশন
-
-// export default function WithdrawPage() {
-//   const dispatch = useDispatch();
-
-//   // 🎯 রিডাক্স গ্লোবাল স্টোর থেকে লাইভ ডাটা রিড
-//   const totalCoin = useSelector((state) => state.wallet.totalCoin || 0);
-//   const totalDollar = useSelector((state) => state.wallet.totalDollar || 0);
-
-//   // Converter States
-//   const [convertInput, setConvertInput] = useState("");    
-  
-//   // Withdraw States
-//   const [paymentMethod, setPaymentMethod] = useState("bKash");
-//   const [accountNumber, setAccountNumber] = useState("");
-//   const [withdrawAmount, setWithdrawAmount] = useState("");
-
-//   // Transaction History Mock Data (Fully English)
-//   const [history, setHistory] = useState([
-//     { id: 1, type: "Convert", amount: "$25.00", status: "Completed", date: "2026-06-12" },
-//     { id: 2, type: "Withdraw (bKash)", amount: "$10.00", status: "Pending", date: "2026-06-15" },
-//   ]);
-
-//   // 💱 Conversion System Config (e.g., 100 Coins = 1.00 USD)
-//   const CONVERSION_RATE = 100; 
-//   const estimatedDollar = convertInput ? (parseFloat(convertInput) / CONVERSION_RATE) : 0;
-
-//   // 📡 ডাটাবেজ থেকে রিয়েল-টাইম ওয়ালেট ব্যালেন্স সিঙ্ক রাখা
-//   useEffect(() => {
-//     dispatch(fetchWalletData());
-//   }, [dispatch]);
-
-//   // Converter Handler (Coin to Dollar)
-//   const handleConvert = async (e) => {
-//     e.preventDefault();
-//     const coinsToConvert = parseFloat(convertInput);
-
-//     if (!coinsToConvert || coinsToConvert <= 0) {
-//       alert("Please enter a valid amount of coins.");
-//       return;
-//     }
-//     if (coinsToConvert > totalCoin) {
-//       alert("Insufficient coin balance in your account!");
-//       return;
-//     }
-
-//     const earnedDollar = coinsToConvert / CONVERSION_RATE;
-
-//     try {
-//       // 📡 এখানে আপনার ব্যাকএন্ড এপিআই কল করতে পারেন
-//       // const res = await fetch("/api/wallet/convert", { ... });
-      
-//       setHistory(prev => [
-//         { id: Date.now(), type: "Convert", amount: `$${earnedDollar.toFixed(2)}`, status: "Completed", date: new Date().toISOString().split('T')[0] },
-//         ...prev
-//       ]);
-
-//       setConvertInput("");
-//       alert(`Success! Converted ${coinsToConvert} Coins to $${earnedDollar.toFixed(2)} USD successfully.`);
-//       dispatch(fetchWalletData()); // রিডাক্স ব্যালেন্স রি-লোডের জন্য
-//     } catch (err) {
-//       console.error("Conversion failed:", err);
-//     }
-//   };
-
-//   // Withdraw Handler
-//   const handleWithdraw = async (e) => {
-//     e.preventDefault();
-//     const amount = parseFloat(withdrawAmount);
-
-//     if (!accountNumber || !amount || amount <= 0) {
-//       alert("Please fill up all fields accurately.");
-//       return;
-//     }
-//     if (amount < 5) {
-//       alert("Minimum withdrawal limit is $5.00 USD!");
-//       return;
-//     }
-//     if (amount > totalDollar) {
-//       alert("Insufficient USD balance in your main wallet!");
-//       return;
-//     }
-
-//     try {
-//       // 📡 এখানে উইথড্র রিকোয়েস্ট এপিআই ইন্টিগ্রেশন করতে পারেন
-      
-//       setHistory(prev => [
-//         { id: Date.now(), type: `Withdraw (${paymentMethod})`, amount: `$${amount.toFixed(2)}`, status: "Pending", date: new Date().toISOString().split('T')[0] },
-//         ...prev
-//       ]);
-
-//       setWithdrawAmount("");
-//       setAccountNumber("");
-//       alert("Your withdrawal request has been sent to the admin payload pipeline. Payout settles within 24 hours.");
-//       dispatch(fetchWalletData());
-//     } catch (err) {
-//       console.error("Withdrawal failed:", err);
-//     }
-//   };
-
-//   return (
-//     <div className="min-h-screen bg-[#060d08] text-white p-4 pb-24 md:pb-6 font-sans antialiased selection:bg-lime-500/30">
-      
-//       {/* 🚀 Top Cmd Header */}
-//       <div className="max-w-xl mx-auto mb-6 flex justify-between items-center bg-[#0d160f]/60 border border-lime-950/40 p-4 rounded-2xl backdrop-blur-md shadow-xl">
-//         <div>
-//           <h1 className="text-xl font-black bg-gradient-to-r from-lime-400 to-cyan-400 bg-clip-text text-transparent uppercase tracking-wider">
-//             Financial Core
-//           </h1>
-//           <p className="text-zinc-500 text-[11px] font-medium">Convert assets and request secure fiat/crypto gateway payouts.</p>
-//         </div>
-//         <div className="flex items-center gap-2 bg-[#060a07] border border-lime-950/80 px-3 py-1.5 rounded-xl">
-//           <span className="h-1.5 w-1.5 rounded-full bg-lime-400 animate-pulse"></span>
-//           <span className="text-[10px] font-black tracking-widest text-lime-400 uppercase">Gateway Live</span>
-//         </div>
-//       </div>
-
-//       {/* Main Layout Container */}
-//       <div className="max-w-xl mx-auto space-y-6">
-        
-//         {/* 📊 Live Balance Matrix Preview Grid */}
-//         <div className="grid grid-cols-2 gap-4">
-//           {/* Total Live Coins Card */}
-//           <div className="bg-gradient-to-b from-[#0b140d] to-[#060a07] border border-lime-950/40 p-4 rounded-2xl relative overflow-hidden shadow-xl">
-//             <p className="text-zinc-500 text-[10px] font-bold uppercase tracking-wider mb-1">Total Mined Coins</p>
-//             <h2 className="text-xl font-black text-amber-400 font-mono tracking-tight">
-//               {totalCoin.toFixed(8)} <span className="text-[10px] font-normal text-zinc-500">COIN</span>
-//             </h2>
-//             <span className="text-[9px] text-zinc-600 block mt-1">Rate: 100 COIN = $1.00 USD</span>
-//             <div className="absolute right-2 bottom-1 text-3xl opacity-[0.03] pointer-events-none">🪙</div>
-//           </div>
-          
-//           {/* Total USD Balance Card */}
-//           <div className="bg-gradient-to-b from-[#0b140d] to-[#060a07] border border-lime-950/40 p-4 rounded-2xl relative overflow-hidden shadow-xl">
-//             <p className="text-zinc-500 text-[10px] font-bold uppercase tracking-wider mb-1">Available USD Balance</p>
-//             <h2 className="text-xl font-black text-lime-400 font-mono tracking-tight">${totalDollar.toFixed(2)}</h2>
-//             <span className="text-[9px] text-zinc-600 block mt-1">Min Payout Level: $5.00</span>
-//             <div className="absolute right-2 bottom-1 text-3xl opacity-[0.03] pointer-events-none">💳</div>
-//           </div>
-//         </div>
-
-//         {/* 🔄 MODULE 1: COIN TO USD CONVERTER */}
-//         <div className="bg-gradient-to-b from-[#0b140d] to-[#060a07] border border-lime-950/40 p-5 rounded-3xl shadow-xl">
-//           <div className="flex items-center gap-2 mb-4 border-b border-lime-950/30 pb-3">
-//             <span className="text-base">🔄</span>
-//             <h3 className="text-xs font-black tracking-widest text-zinc-300 uppercase">Coin Converter Subsystem</h3>
-//           </div>
-          
-//           <form onSubmit={handleConvert} className="space-y-4">
-//             <div>
-//               <label className="text-[11px] font-bold tracking-wide text-zinc-500 uppercase block mb-2">Coins Volume to Convert</label>
-//               <input
-//                 type="number"
-//                 placeholder="e.g. 500"
-//                 value={convertInput}
-//                 onChange={(e) => setConvertInput(e.target.value)}
-//                 className="w-full bg-[#09110b] border border-lime-950/80 rounded-xl p-3.5 text-xs text-lime-400 font-mono tracking-wide focus:outline-none focus:border-amber-500/50 shadow-inner"
-//               />
-//             </div>
-            
-//             {estimatedDollar > 0 && (
-//               <div className="p-3 bg-lime-500/5 border border-lime-500/10 rounded-xl animate-fade-in">
-//                 <p className="text-[11px] text-lime-400 font-medium flex items-center gap-1.5">
-//                   ✨ Est. Value Output: <span className="font-mono font-black">${estimatedDollar.toFixed(2)} USD</span>
-//                 </p>
-//               </div>
-//             )}
-            
-//             <button
-//               type="submit"
-//               className="w-full py-3.5 bg-gradient-to-r from-amber-500 to-orange-500 text-black text-xs font-black tracking-widest uppercase rounded-xl transition-all active:scale-95 shadow-lg shadow-amber-500/10 border border-amber-400"
-//             >
-//               Convert to USD Cargo
-//             </button>
-//           </form>
-//         </div>
-
-//         {/* 💸 MODULE 2: SECURED WITHDRAW FORM */}
-//         <div className="bg-gradient-to-b from-[#0b140d] to-[#060a07] border border-lime-950/40 p-5 rounded-3xl shadow-xl">
-//           <div className="flex items-center gap-2 mb-4 border-b border-lime-950/30 pb-3">
-//             <span className="text-base">💸</span>
-//             <h3 className="text-xs font-black tracking-widest text-zinc-300 uppercase">Secure USD Withdrawal</h3>
-//           </div>
-          
-//           <form onSubmit={handleWithdraw} className="space-y-4">
-//             <div>
-//               <label className="text-[11px] font-bold tracking-wide text-zinc-500 uppercase block mb-2">Select Payout Node Gateway</label>
-//               <select
-//                 value={paymentMethod}
-//                 onChange={(e) => setPaymentMethod(e.target.value)}
-//                 className="w-full bg-[#09110b] border border-lime-950/80 rounded-xl p-3.5 text-xs text-zinc-300 font-bold focus:outline-none focus:border-lime-500/50 appearance-none cursor-pointer"
-//               >
-//                 <option value="bKash" className="bg-[#060a07]">bKash (Local Mobile Wallet)</option>
-//                 <option value="Nagad" className="bg-[#060a07]">Nagad (Local Mobile Wallet)</option>
-//               </select>
-//             </div>
-            
-//             <div>
-//               <label className="text-[11px] font-bold tracking-wide text-zinc-500 uppercase block mb-2">Terminal Account Number</label>
-//               <input
-//                 type="text"
-//                 placeholder="01XXXXXXXXX"
-//                 value={accountNumber}
-//                 onChange={(e) => setAccountNumber(e.target.value)}
-//                 className="w-full bg-[#09110b] border border-lime-950/80 rounded-xl p-3.5 text-xs text-lime-400 font-mono tracking-widest focus:outline-none focus:border-lime-500/50 shadow-inner"
-//               />
-//             </div>
-            
-//             <div>
-//               <label className="text-[11px] font-bold tracking-wide text-zinc-500 uppercase block mb-2">Payout Volume (USD)</label>
-//               <input
-//                 type="number"
-//                 placeholder="Minimum 5"
-//                 value={withdrawAmount}
-//                 onChange={(e) => setWithdrawAmount(e.target.value)}
-//                 className="w-full bg-[#09110b] border border-lime-950/80 rounded-xl p-3.5 text-xs text-lime-400 font-mono tracking-wide focus:outline-none focus:border-lime-500/50 shadow-inner"
-//               />
-//             </div>
-            
-//             <button
-//               type="submit"
-//               className="w-full py-3.5 bg-gradient-to-r from-cyan-600 to-lime-500 text-black text-xs font-black tracking-widest uppercase rounded-xl transition-all active:scale-95 shadow-lg shadow-lime-500/10 border border-lime-400"
-//             >
-//               Fire Payout Pipeline
-//             </button>
-//           </form>
-//         </div>
-
-//         {/* 📜 STORAGE PIPELINE: TRANSACTION HISTORY */}
-//         <div className="bg-gradient-to-b from-[#0b140d] to-[#060a07] border border-lime-950/40 p-5 rounded-3xl shadow-xl">
-//           <div className="mb-4 flex items-center gap-2 border-b border-lime-950/30 pb-3">
-//             <span className="text-base">🏭</span>
-//             <h3 className="text-xs font-black tracking-widest text-zinc-300 uppercase">Financial Node History</h3>
-//           </div>
-          
-//           <div className="overflow-x-auto pt-1">
-//             <table className="w-full text-left text-[11px] text-zinc-300 border-collapse">
-//               <thead className="bg-[#09110b] border-b border-lime-950/60">
-//                 <tr>
-//                   <th className="px-4 py-3 font-bold uppercase tracking-widest text-zinc-400">Operation Type</th>
-//                   <th className="px-4 py-3 font-bold uppercase tracking-widest text-zinc-400">Net Volume</th>
-//                   <th className="px-4 py-3 font-bold uppercase tracking-widest text-zinc-400">Core Status</th>
-//                   <th className="px-4 py-3 font-bold uppercase tracking-widest text-zinc-400">Timestamp</th>
-//                 </tr>
-//               </thead>
-//               <tbody>
-//                 {history.map((item) => (
-//                   <tr key={item.id} className="border-b border-lime-950/30 hover:bg-[#121b15]/40 transition-colors duration-150">
-//                     <td className="px-4 py-3 font-medium text-slate-200">{item.type}</td>
-//                     <td className="px-4 py-3 text-lime-400 font-mono font-bold">{item.amount}</td>
-//                     <td className="px-4 py-3">
-//                       <span className={`px-2.5 py-1 rounded-md text-[9px] font-black tracking-wider border ${
-//                         item.status === "Completed" 
-//                           ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20" 
-//                           : "bg-amber-500/10 text-amber-400 border-amber-500/20"
-//                       }`}>
-//                         {item.status.toUpperCase()}
-//                       </span>
-//                     </td>
-//                     <td className="px-4 py-3 font-mono text-zinc-500 text-[10px]">{item.date}</td>
-//                   </tr>
-//                 ))}
-//               </tbody>
-//             </table>
-//           </div>
-//         </div>
-
-//       </div>
-//     </div>
-//   );
-// }

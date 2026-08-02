@@ -1,12 +1,25 @@
 import { NextResponse } from "next/server";
-import { query } from "@/app/lib/db"; 
+import { query } from "@/app/lib/db";
+import { getSession } from "@/app/lib/auth"; // 🔐 আমাদের আপডেট করা সিকিউর সেশন ইঞ্জিন
 
 export async function POST(request) {
   try {
     const body = await request.json();
-    const { coinsToMinus, dollarsToPlus } = body;
+    const { coinsToMinus } = body; // 💸 ফ্রন্টএন্ড থেকে শুধু কয়েন রিড করা হচ্ছে সেফটির জন্য
 
-    // 🔒 ১. ব্যাকএন্ড ভ্যালিডেশন (Integer Only & Minimum 1000 Coins)
+    // 🔒 ১. সেশন ভ্যালিডেশন এবং লাইভ ইউজার আইডি এক্সট্রাকশন
+    const session = await getSession();
+    
+    if (!session || !session.id) {
+      return NextResponse.json(
+        { success: false, message: "Unauthorized access. Active node session required." },
+        { status: 401 }
+      );
+    }
+
+    const currentUserId = session.id; // 🤝 সেশন থেকে পাওয়া ক্লিন ইন্টিজার user_id
+
+    // 🔒 ২. ব্যাকএন্ড ভ্যালিডেশন (Integer Only & Minimum 1000 Coins)
     const exactCoins = Math.floor(Number(coinsToMinus));
     if (isNaN(exactCoins) || exactCoins < 1000) {
       return NextResponse.json(
@@ -15,12 +28,14 @@ export async function POST(request) {
       );
     }
 
-    // 🛠️ আপনার প্রজেক্টের সেশন বা অথেনটিকেশন অনুযায়ী লগইন করা ইউজারের আইডি গেট করবেন
-    const currentUserId = 53275;
+    // 🧮 ৩. এক্সচেঞ্জ রেট ইঞ্জিন (১০০০ কয়েন = ১.০০ ডলার)
+    // ফ্রন্টএন্ড থেকে আসা ডলারের ভ্যালু ইগনোর করে ব্যাকএন্ডে নিজে হিসাব করবে যাতে হ্যাকিং বা ব্রিচ না হয়
+    const CONVERSION_RATE = 1000; 
+    const dollarsToPlus = parseFloat((exactCoins / CONVERSION_RATE).toFixed(2));
 
-    // ২. 🎯 ডাটাবেজ থেকে user_id এর উপর বেস করে ইউজারের বর্তমান কয়েন ও ডলার ব্যালেন্স চেক করা
+    // ৪. 🎯 ডাটাবেজ থেকে নতুন স্কিমা অনুযায়ী ইউজারের বর্তমান ওয়ালেট ব্যালেন্স চেক করা
     const userWalletCheck = await query(
-      "SELECT total_coin, total_dollar FROM user_wallets WHERE user_id = $1",
+      'SELECT "total_coin", "total_dollar" FROM "user_wallets" WHERE "user_id" = $1',
       [currentUserId]
     );
 
@@ -31,10 +46,10 @@ export async function POST(request) {
       );
     }
 
-    // দশমিকের ঝামেলা এড়াতে পূর্ণসংখ্যা (Integer) কারেন্ট ব্যালেন্স বের করা
+    // দশমিকের ঝামেলা এড়াতে পূর্ণসংখ্যা (Integer) কারেন্ট ব্যালেন্স বের করা
     const currentCoins = Math.floor(Number(userWalletCheck.rows[0].total_coin));
 
-    // ইনপুট দেওয়া কয়েন অ্যাকাউন্টে আছে কিনা তা চেক করা
+    // ইনপুট দেওয়া কয়েন অ্যাকাউন্টে আছে কিনা তা চেক করা
     if (exactCoins > currentCoins) {
       return NextResponse.json(
         { success: false, message: `Insufficient balance! Max convertible whole coins: ${currentCoins}` },
@@ -42,114 +57,35 @@ export async function POST(request) {
       );
     }
 
-    // ৩. 🎯 user_id এর উপর বেস করে কয়েন মাইনাস এবং ডলার প্লাস করার মেইন কুয়েরি
+    // ৫. 🎯 নতুন ডাটাবেজ আর্কিটেকচার অনুযায়ী কয়েন মাইনাস এবং ডলার প্লাস করার কুয়েরি
     const updateWalletQuery = `
-      UPDATE user_wallets 
-      SET total_coin = total_coin - $1, 
-          total_dollar = total_dollar + $2 
-      WHERE user_id = $3
-      RETURNING total_coin, total_dollar
+      UPDATE "user_wallets" 
+      SET "total_coin" = "total_coin" - $1, 
+          "total_dollar" = "total_dollar" + $2,
+          "updated_at" = NOW()
+      WHERE "user_id" = $3
+      RETURNING "total_coin", "total_dollar"
     `;
     
     const updateResult = await query(updateWalletQuery, [exactCoins, dollarsToPlus, currentUserId]);
 
-    // লেটেস্ট আপডেेटेड ব্যালেন্স ভেরিয়েবলে নেওয়া
-    const updatedCoin = Number(updateResult.rows[0].total_coin);
-    const updatedDollar = Number(updateResult.rows[0].total_dollar);
+    // লেটেস্ট আপডেটেড ব্যালেন্স ভেরিয়েবলে নেওয়া
+    const updatedCoin = parseFloat(updateResult.rows[0].total_coin || 0);
+    const updatedDollar = parseFloat(updateResult.rows[0].total_dollar || 0);
 
-    // ৪. 📤 সফল রেসপন্স পাঠানো
+    // ৬. 📤 সফল রেসপন্স পাঠানো (রিডাক্স অ্যাকশন সিঙ্কের কি-নাম অনুযায়ী)
     return NextResponse.json({
       success: true,
-      message: "Assets converted successfully inside database.",
-      newTotalCoin: updatedCoin,     // রিডাক্সের json.newTotalCoin এর সাথে সিঙ্ক হবে
-      newTotalDollar: updatedDollar  // রিডাক্সের json.newTotalDollar এর সাথে সিঙ্ক হবে
-    });
+      message: `Successfully converted ${exactCoins.toLocaleString()} coins into $${dollarsToPlus} USD!`,
+      newTotalCoin: updatedCoin,     // রিডাক্সের জেসন সিঙ্কের সাথে ১০০% ডাইনামিক
+      newTotalDollar: updatedDollar  // রিডাক্সের জেসন সিঙ্কের সাথে ১০০% ডাইনামিক
+    }, { status: 200 });
 
   } catch (error) {
-    console.error("Database Update Error:", error);
+    console.error("Database Core Banking Ledger Update Error:", error);
     return NextResponse.json(
-      { success: false, message: "Internal Server Error in core banking ledger." },
+      { success: false, message: "Internal Server Error in core banking ledger transaction." },
       { status: 500 }
     );
   }
 }
-
-
-// import { NextResponse } from "next/server";
-// import { query } from "@/app/lib/db"; 
-
-// export async function POST(request) {
-//   try {
-//     const body = await request.json();
-//     const { coinsToMinus, dollarsToPlus } = body;
-
-//     // 🔒 ১. ব্যাকএন্ড ভ্যালিডেশন (Integer Only & Minimum 1000 Coins)
-//     const exactCoins = Math.floor(Number(coinsToMinus));
-//     if (isNaN(exactCoins) || exactCoins < 1000) {
-//       return NextResponse.json(
-//         { success: false, message: "Invalid payload. Minimum 1,000 integer coins required." },
-//         { status: 400 }
-//       );
-//     }
-
-//     // 🛠️ আপনার প্রজেক্টের সেশন বা অথেনটিকেশন অনুযায়ী ইউজার আইডি গেট করবেন
-//     const userId = 53275;
-
-//     // ২. ডাটাবেজ থেকে ইউজারের বর্তমান কয়েন ও ডলার ব্যালেন্স চেক করা
-//     // 💡 ফিক্সড: আপনার নতুন কলাম ও টেবিলের নাম (user_wallets, total_coin, total_dollar) অনুযায়ী সিঙ্ক করা হয়েছে
-//     const userWalletCheck = await query(
-//       "SELECT total_coin, total_dollar FROM user_wallets WHERE id = $1",
-//       [userId]
-//     );
-
-//     if (!userWalletCheck || userWalletCheck.rows.length === 0) {
-//       return NextResponse.json(
-//         { success: false, message: "User wallet account not found." },
-//         { status: 404 }
-//       );
-//     }
-
-//     // দশমিকের ঝামেলা এড়াতে পূর্ণসংখ্যা (Integer) কারেন্ট ব্যালেন্স বের করা
-//     // 💡 ফিক্সড: কলামের নাম .total_coin করা হয়েছে
-//     const currentCoins = Math.floor(Number(userWalletCheck.rows[0].total_coin));
-
-//     // ইনপুট দেওয়া কয়েন অ্যাকাউন্টে আছে কিনা তা চেক করা
-//     if (exactCoins > currentCoins) {
-//       return NextResponse.json(
-//         { success: false, message: `Insufficient balance! Max convertible whole coins: ${currentCoins}` },
-//         { status: 400 }
-//       );
-//     }
-
-//     // ৩. 🎯 user_wallets টেবিলে কয়েন মাইনাস এবং ডলার প্লাস করার মেইন কুয়েরি
-//     const updateWalletQuery = `
-//       UPDATE user_wallets 
-//       SET total_coin = total_coin - $1, 
-//           total_dollar = total_dollar + $2 
-//       WHERE id = $3
-//       RETURNING total_coin, total_dollar
-//     `;
-    
-//     const updateResult = await query(updateWalletQuery, [exactCoins, dollarsToPlus, userId]);
-
-//     // เลটেস্ট আপডেটেড ব্যালেন্স ভেরিয়েবলে নেওয়া
-//     // 💡 ফিক্সড: ডাটাবেজ রিটার্ন অবজেক্টের কীগুলো আন্ডারস্কোরসহ (total_coin, total_dollar) রিড করা হয়েছে
-//     const updatedCoin = Number(updateResult.rows[0].total_coin);
-//     const updatedDollar = Number(updateResult.rows[0].total_dollar);
-
-//     // ৪. 📤 সফল রেসপন্স পাঠানো
-//     return NextResponse.json({
-//       success: true,
-//       message: "Assets converted successfully inside database.",
-//       newTotalCoin: updatedCoin,     // রিডাক্সের json.newTotalCoin এর সাথে সিঙ্ক হবে
-//       newTotalDollar: updatedDollar  // রিডাক্সের json.newTotalDollar এর সাথে সিঙ্ক হবে
-//     });
-
-//   } catch (error) {
-//     console.error("Database Update Error:", error);
-//     return NextResponse.json(
-//       { success: false, message: "Internal Server Error in core banking ledger." },
-//       { status: 500 }
-//     );
-//   }
-// }
