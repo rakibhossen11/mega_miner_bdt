@@ -7,7 +7,6 @@ export async function POST(request) {
   try {
     const body = await request.json();
     const { email, password } = body; 
-    // console.log({ email, password });
 
     // ১. ইনপুট ভ্যালিডেশন
     if (!email || !password) {
@@ -19,11 +18,11 @@ export async function POST(request) {
 
     const cleanIdentifier = email.trim().toLowerCase();
 
-    // ২. ডাটাবেজ কুয়েরি: নতুন স্কিমা ও কলামের নাম (user_id, user_email, password_hash) অনুযায়ী ফিক্সড
+    // ২. ডাটাবেজ কুয়েরি: সঠিক কলাম (id, user_id, username, user_email, password_hash, status) ফেচ করা
     const userQuery = `
-      SELECT "user_id", "username", "user_email", "password_hash", "status" 
+      SELECT "id", "user_id", "username", "user_email", "password_hash", "status" 
       FROM "users" 
-      WHERE "username" = $1 OR "user_email" = $2
+      WHERE LOWER("username") = $1 OR LOWER("user_email") = $2
     `;
     const userRes = await query(userQuery, [cleanIdentifier, cleanIdentifier]);
 
@@ -53,16 +52,16 @@ export async function POST(request) {
       );
     }
 
-    // ৫. নতুন ডাটাবেজ আর্কিটেকচার অনুযায়ী সেশন তৈরি এবং কুকি সেট করা
-    // এখানে user.user_id সেশন টেবিলের "user_id" কলামে গিয়ে রিলেশন লক করবে
-    await createSession(user.user_id);
+    // ৫. সেশন তৈরি করা (এখানে মূল 'id' তথা UUID পাস করা হচ্ছে যাতে Session টেবিলের user_id ফরেইন কি নিখুঁতভাবে ম্যাচ করে)
+    await createSession(user.id);
 
-    // ৬. সাকসেস রেসপন্স পাঠানো (রিডাক্স ও ফ্রন্টএন্ড স্টেটের সাথে সামঞ্জস্য রেখে)
+    // ৬. সাকসেস রেসপন্স পাঠানো
     return NextResponse.json(
       { 
         success: true, 
         message: "Login successful! Redirecting...",
         user: { 
+          id: user.id,
           userId: user.user_id, 
           username: user.username, 
           userEmail: user.user_email 

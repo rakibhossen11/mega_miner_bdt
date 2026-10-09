@@ -8,7 +8,6 @@ import { getSession } from "@/app/lib/auth"; // 🚀 লাইভ সেশন �
 export async function GET(request) {
   try {
     const userSessionData = await getSession();
-    // console.log('User-Profile Sync Active:', userSessionData);
 
     if (!userSessionData) {
       return NextResponse.json({ 
@@ -17,21 +16,21 @@ export async function GET(request) {
       }, { status: 401 });
     }
 
-    // 🎯 ডেটাবেজের ডাবল কোটেশন বা স্পেস ক্লিন করার সেফটি লেয়ার
+    // 🎯 ডেটাবেজের ডাবল কোটেশন বা স্পেস ক্লিন করার সেফটি লেয়ার
     const cleanString = (val) => val ? String(val).replace(/"/g, '').trim() : '';
 
     return NextResponse.json({
       success: true,
       data: {
-        id: userSessionData.sessionId, // সেশন আইডি
-        userId: parseInt(userSessionData.id), // user_wallets টেবিলের ইউজার আইডি (integer)
+        id: userSessionData.sessionId, // সেশন টোকেন আইডি
+        userId: userSessionData.id, // মূল ইউজারের UUID (যা user_wallets এর user_id এর সাথে ম্যাচ করে)
         userEmail: cleanString(userSessionData.email),
         username: cleanString(userSessionData.username) || cleanString(userSessionData.email).split('@')[0],
         totalCoin: parseFloat(userSessionData.totalCoin || 0),
         totalDollar: parseFloat(userSessionData.totalDollar || 0),
         miningWallet: parseFloat(userSessionData.miningWallet || 0),
         miningSpeed: parseFloat(userSessionData.miningSpeed || 0),
-        boostPower: parseFloat(userSessionData.boostPower || 1.00), // 🚀 এখন সরাসরি নতুন স্কিমা থেকে আসছে
+        boostPower: parseFloat(userSessionData.boostPower || 1.00),
       }
     }, { status: 200 });
 
@@ -45,23 +44,22 @@ export async function GET(request) {
 }
 
 // ==========================================
-// 📥 POST: সেশন অনুযায়ী ওয়ালেট অ্যাকশন প্রসেস (COLLECT, SYNC, CLAIM_HISTORY)
+// 📥 POST: সেশন অনুযায়ী ওয়ালেট অ্যাকশন প্রসেস (COLLECT, SYNC, CLAIM_HISTORY)
 // ==========================================
 export async function POST(request) {
   try {
     // 🔒 সেশন ভ্যালিডেশন
     const session = await getSession();
     
-    // নতুন আর্কিটেকচার অনুযায়ী সেশনে 'id' (অর্থাৎ user_id) আছে কিনা তা চেক করা হচ্ছে
     if (!session || !session.id) {
       return NextResponse.json({ success: false, error: "Unauthorized session." }, { status: 401 });
     }
 
-    const currentUserId = session.id; // 🤝 সেশন থেকে পাওয়া ক্লিন ইউজার আইডি
+    const currentUserId = session.id; // সেশন থেকে প্রাপ্ত ইউজারের UUID
     const body = await request.json();
     const { action, amount } = body;
 
-    // 🚀 ফিক্সড কুয়েরি: ইমেইলের জটিলতা বাদ দিয়ে ডিরেক্ট মেইন ইন্টিজার 'user_id' দিয়ে সার্চ
+    // 🚀 সঠিক UUID দিয়ে user_wallets থেকে ডাটা ফেচ করা
     const currentData = await query(
       `SELECT "total_coin", "mining_wallet" FROM "user_wallets" WHERE "user_id" = $1`,
       [currentUserId]
@@ -83,7 +81,6 @@ export async function POST(request) {
         const newTotalCoin = currentTotalCoin + amount;
         const newMiningWallet = currentMiningWallet + amount;
 
-        // 🛠️ নতুন স্কিমা অনুযায়ী কলামের ডাবল কোটেশন ও কন্ডিশন ফিক্সড
         await query(
           `UPDATE "user_wallets" 
             SET "total_coin" = $1, "mining_wallet" = $2, "updated_at" = NOW() 
@@ -100,7 +97,6 @@ export async function POST(request) {
       }
 
       case "SYNC": {
-        // মাইনিং ওয়ালেটের কয়েন মূল ব্যালেন্সে যোগ হবে এবং মাইনিং ওয়ালেট রিসেট হয়ে ০ হবে
         const newTotalCoin = currentTotalCoin + currentMiningWallet;
         const newMiningWallet = 0; 
 

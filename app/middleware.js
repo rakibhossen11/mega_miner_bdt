@@ -27,3 +27,36 @@ export function middleware(request) {
 export const config = {
   matcher: ["/((?!api|_next/static|_next/image|favicon.ico).*)"],
 };
+
+
+// import { NextResponse } from 'next/server';
+
+// export function middleware(request) {
+//   const isMaintenance = process.env.NEXT_PUBLIC_MAINTENANCE_MODE === 'true';
+//   const url = request.nextUrl.clone();
+
+//   // Jodi maintenance mode ON thake ebong user maintenance page-e na thake
+//   if (isMaintenance && !url.pathname.startsWith('/maintenance')) {
+//     url.pathname = '/maintenance';
+//     return NextResponse.redirect(url);
+//   }
+
+//   // Jodi maintenance mode OFF thake ebong user direct /maintenance-e dhukte chay
+//   if (!isMaintenance && url.pathname.startsWith('/maintenance')) {
+//     url.pathname = '/';
+//     return NextResponse.redirect(url);
+//   }
+
+//   return NextResponse.next();
+// }
+
+// export const config = {
+//   matcher: [
+//     /*
+//      * Match all request paths except for:
+//      * - api routes (/api/*)
+//      * - static files (_next/static, _next/image, favicon.ico, etc.)
+//      */
+//     '/((?!api|_next/static|_next/image|favicon.ico).*)',
+//   ],
+// };

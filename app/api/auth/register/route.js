@@ -1,41 +1,41 @@
-// app/api/auth/register/route.js
 import { NextResponse } from "next/server";
 import { query } from "@/app/lib/db";
 import bcrypt from "bcryptjs";
-import { createSession } from "@/app/lib/auth"; // 🔐 অটো-লগইনের জন্য সেশন মেথড
+import { createSession } from "@/app/lib/auth"; // 🔐 auto login session method 
 
-// ৫-ডিজিটের ইউনিক ইউজার আইডি জেনারেটর
+// 5-digit unique user ID generator
 function generateFiveDigitId() {
-  return Math.floor(10000 + Math.random() * 90000); // 10000 থেকে 99999
+  return Math.floor(10000 + Math.random() * 90000); // from 10000 to 99999
 }
 
 export async function POST(request) {
   try {
     const body = await request.json();
+    console.log("Received registration data:", body);
     const { username, email, password, referralCode } = body;
 
-    // ১. ফিল্ড ভ্যালিডেশন চেক
+    // 1. Field validation check
     if (!username || !email || !password) {
-      return NextResponse.json({ success: false, error: "All required fields must be filled." }, { status: 400 });
-    }
+      return NextResponse.json({ success: false, error: "Please fill in all required fields." }, { status: 400 });
+    } 
 
     const sanitizedUsername = username.trim().toLowerCase();
     const sanitizedEmail = email.trim().toLowerCase();
 
-    // ২. সিকিউরিটি চেক: ইউজারনেম বা ইমেইল অলরেডি ডাটাবেসে আছে কিনা
-    const checkUserQuery = 'SELECT "user_id" FROM "users" WHERE "username" = $1 OR "user_email" = $2';
+    // 2. Security check: Check if username or user_email already exists in the database
+    const checkUserQuery = 'SELECT "id" FROM "users" WHERE "username" = $1 OR "user_email" = $2';
     const existingUserRes = await query(checkUserQuery, [sanitizedUsername, sanitizedEmail]);
-
+    
     if (existingUserRes.rows.length > 0) {
-      return NextResponse.json({ success: false, error: "Username or Email already registered." }, { status: 400 });
+      return NextResponse.json({ success: false, error: "This username or email is already registered." }, { status: 400 });
     }
 
-    // ৩. ইউনিক ৫-ডিজিটের user_id নিশ্চিত করা
+    // 3. Ensure unique 5-digit user_id
     let uniqueUserId = generateFiveDigitId();
     let idExists = true;
     
     while (idExists) {
-      const checkIdQuery = 'SELECT "user_id" FROM "users" WHERE "user_id" = $1';
+      const checkIdQuery = 'SELECT "id" FROM "users" WHERE "user_id" = $1';
       const idRes = await query(checkIdQuery, [uniqueUserId]);
       if (idRes.rows.length === 0) {
         idExists = false; 
@@ -44,87 +44,62 @@ export async function POST(request) {
       }
     }
 
-    // ৪. রেফারেল ভ্যালিডেশন (নতুন কলাম 'user_id' ভিত্তিক)
+    // 4. Referral validation
     let finalReferrerId = null;
     let finalReferrerName = null;
-
+    
     if (referralCode && referralCode.trim() !== "") {
-      const cleanRefCode = referralCode.trim().toLowerCase();
-
+      const cleanRefCode = referralCode.trim().toLowerCase(); 
+      
       if (cleanRefCode === sanitizedUsername) {
         return NextResponse.json({ success: false, error: "You cannot refer yourself." }, { status: 400 });
-      }
+      } 
 
-      // রেফারারের user_id এবং username তুলে আনা
-      const referrerCheckQuery = 'SELECT "user_id", "username" FROM "users" WHERE "username" = $1';
+      // Fetch referrer's id and username
+      const referrerCheckQuery = 'SELECT "id", "username" FROM "users" WHERE "username" = $1 OR "referral_code" = $1';
       const referrerRes = await query(referrerCheckQuery, [cleanRefCode]);
 
       if (referrerRes.rows.length === 0) {
         return NextResponse.json({ success: false, error: "Invalid referral code. Referrer not found." }, { status: 400 });
       }
 
-      finalReferrerId = referrerRes.rows[0].user_id;        
+      finalReferrerId = referrerRes.rows[0].id;
       finalReferrerName = referrerRes.rows[0].username; 
     }
 
-    // ৫. সিকিউর পাসওয়ার্ড হ্যাশিং (bcryptjs)
+    // 5. Secure password hashing (bcryptjs)
     const salt = await bcrypt.genSalt(10);
-    const hashedPassword = await bcrypt.hash(password, salt);
+    const hashedPassword = await bcrypt.hash(password, salt); 
 
-    // -- ৬. মূল `users` টেবিলে ডেটা ইনসার্ট
+    // 6. Insert data into main `users` table using your exact column names
     const insertQuery = `
-      INSERT INTO "users" ("user_id", "username", "user_email", "password_hash", "referred_by") 
-      VALUES ($1, $2, $3, $4, $5)
+      INSERT INTO "users" ("user_id", "username", "user_email", "password_hash", "referred_by", "full_name", "referral_code") 
+      VALUES ($1, $2, $3, $4, $5, $6, $7)
+      RETURNING "id";
     `;
-    await query(insertQuery, [uniqueUserId, sanitizedUsername, sanitizedEmail, hashedPassword, finalReferrerId]);
+    
+    const newUserRes = await query(insertQuery, [
+      uniqueUserId, 
+      sanitizedUsername, 
+      sanitizedEmail, 
+      hashedPassword, 
+      finalReferrerId, 
+      sanitizedUsername, // full_name এর জন্য আপাতত username ব্যবহার করা হলো
+      sanitizedUsername  // user এর নিজস্ব referral_code হিসেবে username সেট করা হলো
+    ]);
 
-    // =========================================================================
-    // 🎛️ ওয়ালেট তৈরি এবং রেফারেল বোনাস মেকানিজম (নতুন টেবিল লজিক)
-    // =========================================================================
-    // -- ডিফাল্ট সাইন-আপ গিফট (আপনার নতুন স্কিমা অনুযায়ী)
-    let startupCoinBalance = 100.00000000; 
-    const REFERRER_BONUS = 500; 
-    const REFERRED_BONUS = 1000; 
+    const newlyCreatedUserId = newUserRes.rows[0].id;
 
-    if (finalReferrerId && finalReferrerName) {
-      
-      // ক) আপনার নতুন "referrals" টেবিলে হিস্ট্রি রেকর্ড জমা করা
-      const insertHistorySQL = `
-        INSERT INTO "referrals" (
-          "referrer_id", "referrer_username", 
-          "referred_id", "referred_username", 
-          "referrer_bonus_coins", "referred_bonus_coins"
-        ) VALUES ($1, $2, $3, $4, $5, $6)
-      `;
-      await query(insertHistorySQL, [
-        finalReferrerId, finalReferrerName, 
-        uniqueUserId, sanitizedUsername, 
-        REFERRER_BONUS, REFERRED_BONUS
-      ]);
-
-      // খ) রেফারার ইউজারের মেইন ওয়ালেটে (user_wallets) বোনাস টপ-আপ করা
-      const updateReferrerWalletSQL = `
-        UPDATE "user_wallets" 
-        SET "total_coin" = "total_coin" + $1, "updated_at" = NOW()
-        WHERE "user_id" = $2
-      `;
-      await query(updateReferrerWalletSQL, [REFERRER_BONUS, finalReferrerId]);
-
-      // গ) রেফারে আসার কারণে নতুন ইউজারের স্টার্টিং ব্যালেন্স আপডেট
-      startupCoinBalance = startupCoinBalance + REFERRED_BONUS;
-    }
-
-    // ঘ) নতুন ইউজারের জন্য "user_wallets" টেবিলে রো ক্রিয়েট করা
-    const createWalletSQL = `
-      INSERT INTO "user_wallets" ("user_id", "user_email", "username", "total_coin", "total_dollar")
-      VALUES ($1, $2, $3, $4, 0.00)
+    // 7. Automatically create a record in `user_profiles` table to satisfy Foreign Key constraints
+    const profileInsertQuery = `
+      INSERT INTO "user_profiles" ("user_id") 
+      VALUES ($1)
+      ON CONFLICT ("user_id") DO NOTHING;
     `;
-    await query(createWalletSQL, [uniqueUserId, sanitizedEmail, sanitizedUsername, startupCoinBalance]);
-    // =========================================================================
+    await query(profileInsertQuery, [newlyCreatedUserId]);
 
-    // 🔐 ৭. অটোমেটিক সেশন তৈরি এবং ব্রাউজার কুকি সেট করা
-    // এতে ইউজারকে রেজিস্ট্রেশনের পর পুনরায় কষ্ট করে লগইন করতে হবে না
-    await createSession(uniqueUserId);
+    // 8. Automatic session creation and browser cookie setting
+    await createSession(newlyCreatedUserId);
 
     return NextResponse.json({ 
       success: true, 
@@ -132,7 +107,7 @@ export async function POST(request) {
     }, { status: 201 });
 
   } catch (error) {
-    console.error("PostgreSQL Architecture Registration Error:", error);
-    return NextResponse.json({ success: false, error: "Internal Database Server Error." }, { status: 500 });
+    console.error("Database Registration Error:", error);
+    return NextResponse.json({ success: false, error: error.message || "Internal Database Server Error." }, { status: 500 });
   }
 }

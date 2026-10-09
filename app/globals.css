@@ -8,6 +8,35 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
+  /* এখানে Geist-এর পরিবর্তে আপনার কাস্টম ফন্ট ভেরিয়েবল বসিয়ে দিন */
+  --font-sans: var(--font-poppins), Arial, Helvetica, sans-serif;
+  --font-mono: var(--font-geist-mono);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #0a0a0a;
+    --foreground: #ededed;
+  }
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  /* বডিতে সরাসরি ফন্ট ফ্যামিলি ডিক্লেয়ার করার দরকার নেই, @theme inline خود بخود sans ফন্ট হিসেবে ধরে নেবে */
+}
+
+
+/* @import "tailwindcss";
+
+:root {
+  --background: #ffffff;
+  --foreground: #171717;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }
@@ -23,4 +52,4 @@ body {
   background: var(--background);
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
-}
+} */
