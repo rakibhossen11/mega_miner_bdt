@@ -30,10 +30,9 @@ export async function GET() {
       error: "DATABASE CONNECTION FAILED",
       reason: error.message,
       troubleshooting: [
-        "1. Check if your pgAdmin / PostgreSQL server is running locally.",
-        "2. Verify your credentials in the .env.local file.",
-        "3. Ensure the database name configured actually exists in pgAdmin.",
-        "4. Verify the default PostgreSQL port (usually 5432)."
+        "1. Check if your Neon PostgreSQL connection string (DATABASE_URL) is correct in .env / Vercel Environment Variables.",
+        "2. Ensure your Neon database branch is active and accessible.",
+        "3. Verify network access or SSL settings required by Neon cloud database."
       ]
     }, { status: 500 });
   }
