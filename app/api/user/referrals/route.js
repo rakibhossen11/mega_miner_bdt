@@ -40,7 +40,7 @@ export async function GET() {
     const totalReferrals = referredUsersList.length;
     const totalEarnedCoins = totalReferrals * 100;
 
-    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://fyermm.vercel.app";
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://www.fyermm.com";
     const referralLink = `${baseUrl}/auth/register?ref=${referralCode}`;
 
     return NextResponse.json(
