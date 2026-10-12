@@ -45,7 +45,7 @@ export async function POST(request) {
 
     // 3. Ensure unique 5-digit user_id
     let uniqueUserId = generateFiveDigitId();
-    let idExists = true;
+    let idExists = true; 
 
     while (idExists) {
       const checkIdQuery = 'SELECT "id" FROM "users" WHERE "user_id" = $1';

@@ -33,7 +33,7 @@ export default function HomeScreen() {
     }, 400);
   }, []);
 
-  const userFullName = userData?.full_name || "Miner User";
+  const userFullName = userData?.full_name || "Annonimous User";
   const avatarLetter = userFullName ? userFullName.charAt(0).toUpperCase() : "U";
 
   const coinsBalance = userData?.total_coin || "0";

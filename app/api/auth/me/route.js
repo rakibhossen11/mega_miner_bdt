@@ -24,12 +24,11 @@ export async function GET() {
       data: {
         userId: parseInt(userSession.id),        // user_id (integer)
         username: userSession.username,           // username
-        userEmail: userSession.email,             // user_email
+        userEmail: userSession.email,            // user_email
         totalCoin: parseFloat(userSession.totalCoin || 0),
         miningWallet: parseFloat(userSession.miningWallet || 0)
       }
     }, { status: 200 });
-
   } catch (error) {
     console.error('Unexpected error in /api/auth/me:', error);
     return NextResponse.json(
