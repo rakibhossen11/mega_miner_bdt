@@ -27,45 +27,48 @@ export default function RootLayout({ children }) {
 
   return (
     <html lang="en" className={`h-full antialiased ${poppins.variable}`}>
-      <body className="h-full bg-[#060907] text-white selection:bg-lime-500/20">
-      {/* <body className="h-full bg-[#060907] text-white selection:bg-lime-500/20 overflow-x-hidden m-0 p-0 font-sans"> */}
+      <body className="min-h-full bg-[#060907] text-white selection:bg-lime-500/25 m-0 p-0 font-sans">
         <AuthProvider>
           <ReduxProvider>
-            {/* 🚀 AuthProvider এখানে যুক্ত করা হলো যেন অ্যাডমিন এবং ইউজার সব রুটই এর অ্যাক্সেস পায় */}
-
 
             {/* গ্লোবাল টোস্ট নোটিফিকেশন এলার্ট সিস্টেম */}
             <Toaster position="top-center" reverseOrder={false} />
 
             {isAdminRoute ? (
-              /* 🖥️ অ্যাডমিন প্যানেলের জন্য ফুল স্ক্রিন পিসি ভিউ (মোবাইল ফ্রেম থাকবে না) */
+              /* 🖥️ অ্যাডমিন প্যানেলের জন্য ফুল স্ক্রিন পিসি ভিউ */
               <div className="w-full min-h-screen bg-[#040805] flex flex-col">
                 <main className="flex-1 w-full overflow-y-auto">
                   {children}
                 </main>
               </div>
             ) : (
-              /* 📱 ইউজার মোড: সকল স্ক্রিনে আপনার আগের সেইম মোবাইল কন্টেইনার ফ্রেম (হাইট লকড) */
-              // <div className="h-full w-full flex justify-center items-center p-0 sm:p-4 overflow-hidden fixed inset-0">
-              <div className="h-full w-full flex justify-center items-center p-0 sm:p-4 overflow-hidden">
-                {/* <div className="w-full max-w-md h-full sm:h-[840px] bg-[#0a0f0c] sm:border sm:border-lime-950/40 sm:rounded-[32px] shadow-2xl overflow-hidden relative flex flex-col"> */}
-                <div className="w-full max-w-md h-full bg-[#0a0f0c]">
+              /* 📱 ইউজার মোড: মোবাইল ফ্রেম বা রেসপন্সিভ ভিউ (স্ক্রোল নিশ্চিত করা হয়েছে) */
+              <div className="w-full min-h-screen flex justify-center items-start sm:p-4 bg-[#060907]">
+                
+                <div className="w-full max-w-md min-h-screen sm:min-h-[840px] bg-[#0a0f0c] sm:border sm:border-lime-950/40 sm:rounded-[32px] shadow-2xl flex flex-col relative">
 
-                  {/* ১. গ্লোবাল টপ বার (লগইন/অথ পেজ হলে রেন্ডার হবে না) */}
-                  {!isAuthRoute && <TopNavbar />}
+                  {/* ১. গ্লোবাল টপ বার (Sticky করে দেওয়া হয়েছে যাতে উপরে আটকে থাকে) */}
+                  {!isAuthRoute && (
+                    <div className="sticky top-0 z-50">
+                      <TopNavbar />
+                    </div>
+                  )}
 
-                  {/* ২. মেইন কন্টেন্ট এরিয়া (লগইন পেজ সহ সব পেজ এই ফেমের ভেতরেই থাকবে) */}
-                  <main className="flex-1 overflow-y-auto relative custom-scrollbar flex flex-col">
+                  {/* ২. মেইন কন্টेंट এরিয়া (এখানে flex-1 এবং overflow-y-auto যোগ করা হয়েছে যাতে স্ক্রোল কাজ করে) */}
+                  <main className="flex-1 overflow-y-auto flex flex-col pb-24">
                     {children}
                   </main>
 
-                  {/* ৩. গ্লোবাল বটম বার (লগইন/অথ পেজ হলে রেন্ডার হবে না) */}
-                  {!isAuthRoute && <BottomNavbar />}
+                  {/* ৩. গ্লোবাল বটম বার (Fixed করে দেওয়া হয়েছে যাতে স্ক্রোল করলেও নিচে আটকে থাকে) */}
+                  {!isAuthRoute && (
+                    <div className="absolute bottom-0 left-0 right-0 z-50">
+                      <BottomNavbar />
+                    </div>
+                  )}
 
                 </div>
               </div>
             )}
-
 
           </ReduxProvider>
         </AuthProvider>

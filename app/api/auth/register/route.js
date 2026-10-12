@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { query } from "@/app/lib/db";
 import bcrypt from "bcryptjs";
-import { createSession } from "@/app/lib/auth"; // 🔐 auto login session method 
+import { createSession } from "@/app/lib/auth"; // 🔐 auto login session method
 
 // 5-digit unique user ID generator
 function generateFiveDigitId() {
@@ -16,60 +16,83 @@ export async function POST(request) {
 
     // 1. Field validation check
     if (!username || !email || !password) {
-      return NextResponse.json({ success: false, error: "Please fill in all required fields." }, { status: 400 });
-    } 
+      return NextResponse.json(
+        { success: false, error: "Please fill in all required fields." },
+        { status: 400 },
+      );
+    }
 
     const sanitizedUsername = username.trim().toLowerCase();
     const sanitizedEmail = email.trim().toLowerCase();
 
     // 2. Security check: Check if username or user_email already exists in the database
-    const checkUserQuery = 'SELECT "id" FROM "users" WHERE "username" = $1 OR "user_email" = $2';
-    const existingUserRes = await query(checkUserQuery, [sanitizedUsername, sanitizedEmail]);
-    
+    const checkUserQuery =
+      'SELECT "id" FROM "users" WHERE "username" = $1 OR "user_email" = $2';
+    const existingUserRes = await query(checkUserQuery, [
+      sanitizedUsername,
+      sanitizedEmail,
+    ]);
+
     if (existingUserRes.rows.length > 0) {
-      return NextResponse.json({ success: false, error: "This username or email is already registered." }, { status: 400 });
+      return NextResponse.json(
+        {
+          success: false,
+          error: "This username or email is already registered.",
+        },
+        { status: 400 },
+      );
     }
 
     // 3. Ensure unique 5-digit user_id
     let uniqueUserId = generateFiveDigitId();
     let idExists = true;
-    
+
     while (idExists) {
       const checkIdQuery = 'SELECT "id" FROM "users" WHERE "user_id" = $1';
       const idRes = await query(checkIdQuery, [uniqueUserId]);
       if (idRes.rows.length === 0) {
-        idExists = false; 
+        idExists = false;
       } else {
-        uniqueUserId = generateFiveDigitId(); 
+        uniqueUserId = generateFiveDigitId();
       }
     }
 
     // 4. Referral validation
     let finalReferrerId = null;
     let finalReferrerName = null;
-    
+
     if (referralCode && referralCode.trim() !== "") {
-      const cleanRefCode = referralCode.trim().toLowerCase(); 
-      
+      const cleanRefCode = referralCode.trim().toLowerCase();
+
       if (cleanRefCode === sanitizedUsername) {
-        return NextResponse.json({ success: false, error: "You cannot refer yourself." }, { status: 400 });
-      } 
+        return NextResponse.json(
+          { success: false, error: "You cannot refer yourself." },
+          { status: 400 },
+        );
+      }
 
       // Fetch referrer's id and username
-      const referrerCheckQuery = 'SELECT "id", "username" FROM "users" WHERE "username" = $1 OR "referral_code" = $1';
+      const referrerCheckQuery =
+        'SELECT "id", "username" FROM "users" WHERE "username" = $1 OR "referral_code" = $1';
       const referrerRes = await query(referrerCheckQuery, [cleanRefCode]);
 
       if (referrerRes.rows.length === 0) {
-        return NextResponse.json({ success: false, error: "Invalid referral code. Referrer not found." }, { status: 400 });
+        return NextResponse.json(
+          {
+            success: false,
+            error: "Invalid referral code. Referrer not found.",
+          },
+          { status: 400 },
+        );
       }
 
       finalReferrerId = referrerRes.rows[0].id;
-      finalReferrerName = referrerRes.rows[0].username; 
+      finalReferrerName = referrerRes.rows.username;
     }
 
     // 5. Secure password hashing (bcryptjs)
     const salt = await bcrypt.genSalt(10);
-    const hashedPassword = await bcrypt.hash(password, salt); 
+    const hashedPassword = await bcrypt.hash(password, salt);
 
     // 6. Insert data into main `users` table using your exact column names
     const insertQuery = `
@@ -77,18 +100,25 @@ export async function POST(request) {
       VALUES ($1, $2, $3, $4, $5, $6, $7)
       RETURNING "id";
     `;
-    
+
     const newUserRes = await query(insertQuery, [
-      uniqueUserId, 
-      sanitizedUsername, 
-      sanitizedEmail, 
-      hashedPassword, 
-      finalReferrerId, 
-      sanitizedUsername, // full_name এর জন্য আপাতত username ব্যবহার করা হলো
-      sanitizedUsername  // user এর নিজস্ব referral_code হিসেবে username সেট করা হলো
+      uniqueUserId,
+      sanitizedUsername,
+      sanitizedEmail,
+      hashedPassword,
+      finalReferrerId,
+      sanitizedUsername,
+      sanitizedUsername,
     ]);
 
     const newlyCreatedUserId = newUserRes.rows[0].id;
+
+    // 🛠️ FIX: `client.query`-এর বদলে গ্লোবাল `query` ফাংশন ব্যবহার করা হলো
+    const walletInsertQuery = `
+      INSERT INTO "wallets" ("user_id", "total_coin", "available_coin", "pending_coin", "locked_coin", "total_cash", "available_cash", "pending_cash") 
+      VALUES ($1, 1000, 1000, 0, 0, 0.00, 0.00, 0.00);
+    `;
+    await query(walletInsertQuery, [newlyCreatedUserId]);
 
     // 7. Automatically create a record in `user_profiles` table to satisfy Foreign Key constraints
     const profileInsertQuery = `
@@ -96,18 +126,27 @@ export async function POST(request) {
       VALUES ($1)
       ON CONFLICT ("user_id") DO NOTHING;
     `;
+    
     await query(profileInsertQuery, [newlyCreatedUserId]);
 
     // 8. Automatic session creation and browser cookie setting
     await createSession(newlyCreatedUserId);
 
-    return NextResponse.json({ 
-      success: true, 
-      message: "Account and Secure Node configuration setup complete!" 
-    }, { status: 201 });
-
+    return NextResponse.json(
+      {
+        success: true,
+        message: "Account and Secure Node configuration setup complete!",
+      },
+      { status: 201 },
+    );
   } catch (error) {
     console.error("Database Registration Error:", error);
-    return NextResponse.json({ success: false, error: error.message || "Internal Database Server Error." }, { status: 500 });
+    return NextResponse.json(
+      {
+        success: false,
+        error: error.message || "Internal Database Server Error.",
+      },
+      { status: 500 },
+    );
   }
 }
