@@ -41,7 +41,7 @@ export default function HomeScreen() {
 
   // React Native কোডের আসল কালার এবং ফিচার লিস্ট হুবহু রাখা হলো
   const features = [
-    // { id: "1", name: "Daily Check In", desc: "Daily Rewards", icon: CalendarCheck, color: "#3b82f6", target: "/dashboard/daily-checkin" },
+    { id: "1", name: "Daily Check In", desc: "Daily Rewards", icon: CalendarCheck, color: "#3b82f6", target: "/dashboard/checkin" },
     // { id: "2", name: "Spin Wheel", desc: "Lucky Spin", icon: Sparkles, color: "#ec4899", target: "/dashboard/spin" },
     // { id: "3", name: "Reward Ads", desc: "Watch & Earn", icon: Tv, color: "#10b981", target: "/dashboard/ads" },
     // { id: "4", name: "Scratch Card", desc: "Test Your Luck", icon: Ticket, color: "#f59e0b", target: "/dashboard/scratch" },
@@ -60,7 +60,7 @@ export default function HomeScreen() {
   }
 
   return (
-    <div className="min-h-screen bg-[#090d16] text-white pb-32 select-none max-w-xl mx-auto">
+    <div className="min-h-screen bg-[#090d16] text-white pb-32 select-none max-w-xl">
       
       {/* 🔹 1. Top Profile & Notification Header */}
       {/* <div className="flex justify-between items-center px-5 py-[15px]">
@@ -108,7 +108,7 @@ export default function HomeScreen() {
         </div> */}
 
         {/* 🔹 3. Membership / Banner Promos */}
-        <VipMemberCard />
+        {/* <VipMemberCard /> */}
         {/* <div 
           onClick={() => router.push("/dashboard/upgrade")}
           className="bg-[#4f46e5] rounded-[20px] p-4 my-5 flex items-center justify-between cursor-pointer"
