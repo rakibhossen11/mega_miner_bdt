@@ -5,7 +5,7 @@ import { createSession } from "@/app/lib/auth"; // 🔐 auto login session metho
 
 // 🪙 Koyen bonus configuration
 const NEW_USER_WELCOME_BONUS = 1000; // Notun user pabe 1000 koyen
-const REFERRER_BONUS_COIN = 500;     // Referrer pabe 500 koyen
+const REFERRER_BONUS_COIN = 500; // Referrer pabe 500 koyen
 
 // 5-digit unique user ID generator
 function generateFiveDigitId() {
@@ -15,7 +15,7 @@ function generateFiveDigitId() {
 export async function POST(request) {
   try {
     const body = await request.json();
-    
+
     const username = body.username;
     const email = body.email;
     const password = body.password;
@@ -125,6 +125,21 @@ export async function POST(request) {
     const newlyCreatedUserId = newUserRes.rows[0].id; // New User UUID
 
     // -----------------------------------------------------------------
+    // 🚀 STEP 1.1: Create Referral Record for new user (Safe Check Added)
+    // -----------------------------------------------------------------
+    if (finalReferrerOwnerId) {
+      const insertReferralRecord = `
+        INSERT INTO "referrals" ("referrer_id", "referred_id", "reward_amount", "status") 
+        VALUES ($1, $2, $3, 'completed');
+      `;
+      await query(insertReferralRecord, [
+        finalReferrerOwnerId,
+        newlyCreatedUserId,
+        REFERRER_BONUS_COIN,
+      ]);
+    }
+
+    // -----------------------------------------------------------------
     // 🚀 STEP 2: Create Wallet for New User (1000 Coins)
     // -----------------------------------------------------------------
     const walletInsertQuery = `
@@ -139,7 +154,10 @@ export async function POST(request) {
         "pending_cash"
       ) VALUES ($1, $2, $2, 0, 0, 0.00, 0.00, 0.00);
     `;
-    await query(walletInsertQuery, [newlyCreatedUserId, NEW_USER_WELCOME_BONUS]);
+    await query(walletInsertQuery, [
+      newlyCreatedUserId,
+      NEW_USER_WELCOME_BONUS,
+    ]);
 
     // -----------------------------------------------------------------
     // 🚀 STEP 3: Update Referrer's Wallet (+500 Coins)
@@ -164,7 +182,10 @@ export async function POST(request) {
             "user_id", "total_coin", "available_coin", "pending_coin", "locked_coin", "total_cash", "available_cash", "pending_cash"
           ) VALUES ($1, $2, $2, 0, 0, 0.00, 0.00, 0.00);
         `;
-        await query(createOwnerWallet, [finalReferrerOwnerId, REFERRER_BONUS_COIN]);
+        await query(createOwnerWallet, [
+          finalReferrerOwnerId,
+          REFERRER_BONUS_COIN,
+        ]);
       }
     }
 

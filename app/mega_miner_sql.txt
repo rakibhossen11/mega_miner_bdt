@@ -75,3 +75,31 @@ CREATE TABLE "referrals" (
 CREATE INDEX "user_wallets_user_id_idx" ON "user_wallets"("user_id");
 CREATE INDEX "Session_user_id_idx" ON "Session"("user_id");
 CREATE INDEX "referrals_referrer_id_idx" ON "referrals"("referrer_id");
+
+CREATE TABLE "referrals" (
+    "id" UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    
+    -- কে রেফার করেছে (Referrer-এর UUID)
+    "referrer_id" UUID NOT NULL REFERENCES "users"("id") ON DELETE CASCADE,
+    
+    -- কে জয়েন করেছে বা নতুন ইউজার (Referred User-এর UUID)
+    "referred_id" UUID NOT NULL REFERENCES "users"("id") ON DELETE CASCADE,
+    
+    -- এই রেফার বাবদ কত কয়েন বোনাস দেওয়া হয়েছে
+    "reward_amount" INTEGER DEFAULT 500,
+    
+    -- রেফারেলের বর্তমান স্ট্যাটাস (যেমন: completed, pending, blocked)
+    "status" VARCHAR(50) DEFAULT 'completed',
+    
+    -- অ্যান্টি-ফ্রড বা মাল্টি-অ্যাকাউন্ট ট্র্যাক করার জন্য IP বা Device ইনফো (ঐচ্ছিক)
+    "ip_address" VARCHAR(45),
+    
+    -- কখন রেফারেলটি সফল হয়েছে
+    "created_at" TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    
+    -- সিকিউরিটি: একই ইউজার যেন একাধিকবার রেফার না হতে পারে
+    CONSTRAINT unique_referred_user UNIQUE ("referred_id")
+);
+
+-- দ্রুত কুয়েরি করার জন্য ইনডেক্সিং
+CREATE INDEX idx_referrals_referrer ON "referrals"("referrer_id");

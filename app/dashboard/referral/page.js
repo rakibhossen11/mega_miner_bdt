@@ -10,7 +10,7 @@ export default function ReferralPage() {
   const [referralData, setReferralData] = useState(null);
   const [copied, setCopied] = useState(false);
 
-  // এপিআই থেকে রেফারেল ডাটা ফেচ করা
+  // API theke referral data fetch kora
   useEffect(() => {
     async function fetchReferrals() {
       try {
@@ -31,7 +31,7 @@ export default function ReferralPage() {
     fetchReferrals();
   }, []);
 
-  // লিংক কপি করার ফাংশন
+  // Link copy korar function
   const handleCopyLink = () => {
     if (referralData?.referralLink) {
       navigator.clipboard.writeText(referralData.referralLink);
@@ -53,7 +53,7 @@ export default function ReferralPage() {
     <div className="min-h-screen bg-[#060907] text-white px-4 py-6 pb-32 max-w-xl mx-auto select-none">
       <Toaster position="top-center" />
 
-      {/* 🔙 ব্যাক বাটন ও হেডার */}
+      {/* Back button & Header */}
       <div className="flex items-center justify-between mb-6">
         <button
           onClick={() => router.push("/dashboard/mining")}
@@ -63,10 +63,10 @@ export default function ReferralPage() {
           Back
         </button>
         <h1 className="text-base font-bold tracking-wider uppercase text-lime-400">My Referral Team</h1>
-        <div className="w-9"></div> {/* Alignment spacer */}
+        <div className="w-9"></div>
       </div>
 
-      {/* 🏆 স্ট্যাটিস্টিকস কার্ড (Total Referrals & Earned Coins) */}
+      {/* Statistics Cards (Total Referrals & Earned Coins) */}
       <div className="grid grid-cols-2 gap-3 mb-6">
         <div className="bg-[#0a0f0c] border border-lime-950/60 rounded-2xl p-4 shadow-lg relative overflow-hidden">
           <div className="absolute top-0 right-0 w-20 h-20 bg-lime-500/5 rounded-full blur-xl"></div>
@@ -91,7 +91,7 @@ export default function ReferralPage() {
         </div>
       </div>
 
-      {/* 🔗 ইনভাইট লিংক ও কোড শেয়ার সেকশন */}
+      {/* Invite link & code share section */}
       <div className="bg-[#0a0f0c] border border-lime-950/60 rounded-2xl p-5 mb-6 shadow-xl">
         <div className="flex items-center gap-2 mb-3">
           <Sparkles className="text-lime-400" size={18} />
@@ -101,7 +101,7 @@ export default function ReferralPage() {
           Share your unique referral link with friends. When they join your team, you instantly earn bonus mining coins!
         </p>
 
-        {/* লিংক বক্স */}
+        {/* Link Box */}
         <div className="bg-[#060907] border border-lime-950/80 rounded-xl p-3 flex items-center justify-between gap-2 mb-3">
           <span className="text-xs text-zinc-300 font-mono truncate">
             {referralData?.referralLink || "Loading link..."}
@@ -120,7 +120,7 @@ export default function ReferralPage() {
         </div>
       </div>
 
-      {/* 📋 রেফার করা ইউজারদের তালিকা (Referred Users List) */}
+      {/* Referred Members List */}
       <div className="bg-[#0a0f0c] border border-lime-950/60 rounded-2xl p-5 shadow-xl">
         <h3 className="text-sm font-bold text-white mb-4 flex items-center gap-2">
           <Share2 className="text-lime-400" size={16} />
@@ -150,8 +150,9 @@ export default function ReferralPage() {
                     </p>
                   </div>
                 </div>
+                {/* Dynamic reward amount from referrals table */}
                 <span className="text-[10px] font-bold bg-lime-500/10 text-lime-400 px-2 py-1 rounded-md border border-lime-500/20">
-                  +100 Coins
+                  +{user.reward_amount || 500} Coins
                 </span>
               </div>
             ))}
