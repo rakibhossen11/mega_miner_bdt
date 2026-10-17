@@ -13,7 +13,8 @@ import {
   Coins,
   ArrowRight,
   Sparkles,
-  Trophy
+  Trophy,
+  Zap
 } from "lucide-react";
 import BalanceCard from "@/app/components/BalanceCard";
 import VipMemberCard from "@/app/components/VipMemberCard";
@@ -73,6 +74,14 @@ export default function HomeScreen() {
       icon: Trophy, // (অথবা Zap ব্যবহার করতে পারেন)
       color: "#84cc16",
       target: "/dashboard/level",
+    },
+    {
+      id: "mining",
+      name: "Cyber Mining",
+      desc: "Mine 24h & Earn XP",
+      icon: Zap,
+      color: "#84cc16",
+      target: "/dashboard/mining",
     },
   ];
 

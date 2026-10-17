@@ -127,3 +127,15 @@ ADD COLUMN IF NOT EXISTS "current_level" INTEGER DEFAULT 1;
 
 -- XP Fast Lookup-এর জন্য ইনডেক্স
 CREATE INDEX IF NOT EXISTS idx_users_xp_level ON "users"("current_xp", "current_level");
+
+CREATE TABLE IF NOT EXISTS "mining_sessions" (
+  "id" UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  "user_id" UUID UNIQUE REFERENCES "users"("id") ON DELETE CASCADE,
+  "start_time" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  "end_time" TIMESTAMP WITH TIME ZONE NOT NULL,
+  "status" VARCHAR(20) DEFAULT 'active',
+  "created_at" TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  "updated_at" TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_mining_user_id ON "mining_sessions"("user_id");

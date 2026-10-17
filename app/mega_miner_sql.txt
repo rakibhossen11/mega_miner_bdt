@@ -115,3 +115,4 @@ CREATE TABLE IF NOT EXISTS "daily_checkins" (
 
 -- Fast lookup-এর জন্য index
 CREATE INDEX IF NOT EXISTS idx_daily_checkins_user ON "daily_checkins"("user_id");
+

@@ -74,7 +74,7 @@ export default function DailyCheckInPage() {
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <button
-          onClick={() => router.push("/dashboard/mining")}
+          onClick={() => router.push("/dashboard/home")}
           className="flex items-center gap-2 bg-[#0a0f0c] border border-lime-950/60 px-3.5 py-2 rounded-xl text-xs font-semibold text-lime-400 hover:bg-lime-500/10 transition-all"
         >
           <ArrowLeft size={16} />
