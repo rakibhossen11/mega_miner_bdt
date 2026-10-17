@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { query } from "@/app/lib/db";
 import { getSession } from "@/app/lib/auth";
+import { addXpToUser } from "@/app/lib/level"; // ⚡ Level & XP helper
 
 const REWARD_MAP = {
   1: 100,
@@ -11,6 +12,8 @@ const REWARD_MAP = {
   6: 700,
   7: 1000,
 };
+
+const CHECKIN_XP_REWARD = 50; // ⚡ Check-in korle daily 50 XP pabe
 
 // 🛠️ Local Timezone Date Generator (Fixes duplicate daily claim bug)
 function getLocalDateString(dateObj = new Date()) {
@@ -138,7 +141,7 @@ export async function POST() {
       );
     }
 
-    // 2. Add Reward Coins
+    // 2. Add Reward Coins to Wallet
     const rewardCoins = REWARD_MAP[nextStreak] || 100;
 
     const walletUpdate = `
@@ -150,11 +153,15 @@ export async function POST() {
     `;
     await query(walletUpdate, [rewardCoins, userId]);
 
+    // ⚡ 3. Add XP & Check for Level Up (+50 XP)
+    const xpResult = await addXpToUser(userId, CHECKIN_XP_REWARD);
+
     return NextResponse.json({
       success: true,
-      message: `Day ${nextStreak} claimed! +${rewardCoins} Coins added.`,
+      message: `Day ${nextStreak} claimed! +${rewardCoins} Coins & +${CHECKIN_XP_REWARD} XP added.`,
       rewardCoins,
       nextStreak,
+      xpData: xpResult, // Optional: Frontend-e level up notification দেখানোর জন্য কাজে লাগাতে পারেন
     });
   } catch (error) {
     console.error("Checkin POST Error:", error);

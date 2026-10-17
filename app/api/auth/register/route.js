@@ -2,10 +2,15 @@ import { NextResponse } from "next/server";
 import { query } from "@/app/lib/db";
 import bcrypt from "bcryptjs";
 import { createSession } from "@/app/lib/auth"; // 🔐 auto login session method
+import { addXpToUser } from "@/app/lib/level"; // ⚡ Level & XP helper
 
 // 🪙 Koyen bonus configuration
 const NEW_USER_WELCOME_BONUS = 1000; // Notun user pabe 1000 koyen
 const REFERRER_BONUS_COIN = 500; // Referrer pabe 500 koyen
+
+// ⚡ XP Bonus Configuration
+const NEW_USER_WELCOME_XP = 100; // Notun user sign up korle pabe 100 XP
+const REFERRER_BONUS_XP = 200;   // Keuake refer korle referrer pabe 200 XP
 
 // 5-digit unique user ID generator
 function generateFiveDigitId() {
@@ -104,11 +109,11 @@ export async function POST(request) {
     const hashedPassword = await bcrypt.hash(password, salt);
 
     // -----------------------------------------------------------------
-    // 🚀 STEP 1: New User Entry in `users` Table
+    // 🚀 STEP 1: New User Entry in `users` Table (Starts with initial XP if needed)
     // -----------------------------------------------------------------
     const insertUserQuery = `
-      INSERT INTO "users" ("user_id", "username", "user_email", "password_hash", "referred_by", "full_name", "referral_code") 
-      VALUES ($1, $2, $3, $4, $5, $6, $7)
+      INSERT INTO "users" ("user_id", "username", "user_email", "password_hash", "referred_by", "full_name", "referral_code", "current_xp", "current_level") 
+      VALUES ($1, $2, $3, $4, $5, $6, $7, 0, 1)
       RETURNING "id";
     `;
 
@@ -117,15 +122,20 @@ export async function POST(request) {
       sanitizedUsername,
       sanitizedEmail,
       hashedPassword,
-      finalReferrerOwnerId, // Storing referrer's UUID
+      finalReferrerOwnerId,
       sanitizedUsername,
-      sanitizedUsername, // User's own referral_code
+      sanitizedUsername,
     ]);
 
     const newlyCreatedUserId = newUserRes.rows[0].id; // New User UUID
 
     // -----------------------------------------------------------------
-    // 🚀 STEP 1.1: Create Referral Record for new user (Safe Check Added)
+    // 🚀 STEP 1.1: Give Initial Welcome XP to New User (+100 XP)
+    // -----------------------------------------------------------------
+    await addXpToUser(newlyCreatedUserId, NEW_USER_WELCOME_XP);
+
+    // -----------------------------------------------------------------
+    // 🚀 STEP 1.2: Create Referral Record for new user
     // -----------------------------------------------------------------
     if (finalReferrerOwnerId) {
       const insertReferralRecord = `
@@ -160,7 +170,7 @@ export async function POST(request) {
     ]);
 
     // -----------------------------------------------------------------
-    // 🚀 STEP 3: Update Referrer's Wallet (+500 Coins)
+    // 🚀 STEP 3: Update Referrer's Wallet (+500 Coins) & Add XP (+200 XP)
     // -----------------------------------------------------------------
     if (finalReferrerOwnerId) {
       const updateReferrerWalletQuery = `
@@ -175,7 +185,6 @@ export async function POST(request) {
         finalReferrerOwnerId,
       ]);
 
-      // Jodi referrer-er wallet age na thake, tobe 500 coin diye row create hobe
       if (updateResult.rowCount === 0) {
         const createOwnerWallet = `
           INSERT INTO "wallets" (
@@ -187,6 +196,9 @@ export async function POST(request) {
           REFERRER_BONUS_COIN,
         ]);
       }
+
+      // ⚡ Referrer ke referral baobad XP dewa hoise (+200 XP) ebong level up check kora hoise
+      await addXpToUser(finalReferrerOwnerId, REFERRER_BONUS_XP);
     }
 
     // -----------------------------------------------------------------
@@ -207,7 +219,7 @@ export async function POST(request) {
     return NextResponse.json(
       {
         success: true,
-        message: "Account created successfully with referral bonus!",
+        message: "Account created successfully with referral bonus and XP setup!",
       },
       { status: 201 },
     );

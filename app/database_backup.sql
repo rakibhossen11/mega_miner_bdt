@@ -119,3 +119,11 @@ COMMENT ON COLUMN "referrals"."referred_bonus_coins" IS 'রেফারেল �
 CREATE INDEX "user_wallets_user_id_idx" ON "user_wallets"("user_id");
 CREATE INDEX "Session_user_id_idx" ON "Session"("user_id");
 CREATE INDEX "referrals_referrer_id_idx" ON "referrals"("referrer_id");
+
+-- XP এবং লেভেল সিস্টেমের জন্য নতুন কলাম যোগ করা হলো
+ALTER TABLE "users" 
+ADD COLUMN IF NOT EXISTS "current_xp" INTEGER DEFAULT 0,
+ADD COLUMN IF NOT EXISTS "current_level" INTEGER DEFAULT 1;
+
+-- XP Fast Lookup-এর জন্য ইনডেক্স
+CREATE INDEX IF NOT EXISTS idx_users_xp_level ON "users"("current_xp", "current_level");
